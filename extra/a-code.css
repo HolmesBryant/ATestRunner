@@ -1,0 +1,13 @@
+a-code {
+	--indent: 1;
+	--line-number-color: gray;
+	--wrap: pre;
+ }
+
+a-code::part(section) {
+	background-color: var(--bg2-color);
+	border-radius: .5rem;
+}
+
+a-code::part(line-numbers) {}
+a-code::part(content) {}

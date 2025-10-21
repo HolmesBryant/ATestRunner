@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>ATestRunner Javascript Test Runner</title>
+	<script type="module" src="tests/atestrunner.tests.js"></script>
+	<script type="module" src="tests/test-object.tests.js"></script>
+	<script type="module" src="extra/a-markdown.min.js"></script>
+	<script type="module" src="extra/a-tabset.min.js"></script>
+	<script type="module" src="extra/a-code.min.js"></script>
+
+	<link rel="stylesheet" href="extra/styles.css">
+	<link rel="stylesheet" href="extra/a-tabset.css">
+	<link rel="stylesheet" href="extra/a-code.css">
+</head>
+<body>
+	<h1>ATestRunner</h1>
+	<p><strong>A modern, flexible JavaScript test runner for the browser.</strong></p>
+
+	<section>
+		<details>
+			<summary>README</summary>
+			<a-markdown file="./README.md"></a-markdown>
+		</details>
+	</section>
+
+	<section>
+	<h2>Demo</h2>
+		<a-tabset>
+			<b slot="title">
+				Default Behavior
+			</b>
+			<div slot="content">
+				<p>
+				The default behavior is to log test results to the console.</p>
+				<p>To see the results, open the web browser's <code>Developer tools</code> and view the console.</p>
+			</div>
+
+			<b slot="title">
+				Output sent to HTML Element
+			</b>
+			<div slot="content">
+				<p>In this example, the test results are sent to a configurable html element as a series of <code>output</code> elements containing JSON formatted strings.</p>
+				<p>The raw output is rather unimpressive, however the standard JSON format can easily be transformed by javascript into pretty much anything you want.</p>
+
+				<section id="test-output" class="flex column stretch"></section>
+			</div>
+		</a-tabset>
+	</section>
+
+	<section>
+	<h2>Setup</h2>
+		<div class="card">
+		<h3>Standard Setup</h3>
+			<a-code highlight="javascript">
+				<textarea>
+					// tests/my-tests.js
+
+					import ATestRunner from './ATestrunner.js';
+					import myMod from '../src/myModule.js';
+					const runner = new ATestRunner(import.meta.url)
+
+					/* This list of properties describes the full public API.
+					You will probably not need all of them in your test suite.
+					You can safely omit the ones you don't need.*/
+					const {benchmark, equal, genCombos, info, spyOn, test, wait, when} = runner;
+
+					test (
+						"getArr() should return an array",
+						Array.isArray(myMod.getArr()),
+						true
+					);
+
+					// more tests...
+
+					runner.run();
+				</textarea>
+			</a-code>
+
+			<a-code highlight>
+				<textarea>
+					<!-- test-results.html -->
+
+					<head>
+						...
+						<script type="module" src="tests/my-tests.js">
+						</script>
+						...
+					</head>
+					<body>
+						<p>Open the developer console to see test results.</p>
+					</body>
+				</textarea>
+			</a-code>
+
+			<a-code highlight="javascript">
+				// src/myModule.js
+
+				export default {
+					foo: 'foo',
+					bar: null,
+					baz: undefined,
+					arr: [1,2,3],
+					pojo: {a:1, b:2, c:3},
+					async asyncFunc(arg) {
+						return new Promise((resolve, reject) => {
+			  			setTimeout(() => { resolve(arg ?? 'foo') }, 300);
+						});
+					},
+					getArr() { return this.arr }
+				};
+			</a-code>
+		</div>
+
+		<div class="card">
+		<h3>Sending output to an HTML element</h3>
+			<a-code highlight="javascript">
+				<textarea>
+					// tests/my-tests.js
+
+					import ATestRunner from './ATestrunner.js';
+					import myMod from '../src/myModule.js';
+					const runner = new ATestRunner(import.meta.url)
+
+					/* Point `output` to a CSS selector */
+					runner.output = '#test-results';
+
+					const { equal, info, test } = runner;
+
+					info( 'Testing this thing' );
+
+					test(
+						"pojo should be {a:1, b:2, c:3}",
+						equal( myMod.pojo, {a:1, b:2, c:3}),
+						true
+					);
+
+					runner.run();
+				</textarea>
+			</a-code>
+
+			<a-code highlight>
+				<textarea>
+					<!-- test-results.html -->
+
+					<head>
+						...
+						<script type="module" src="tests/my-tests.js">
+						</script>
+						...
+					</head>
+					<body>
+						<!--
+						Remember to include the HTML element
+						to which you want to send the results.
+						-->
+						<div id="test-results"></div>
+					</body>
+				</textarea>
+			</a-code>
+		</div>
+	</section>
+
+	<section class="flex column stretch">
+		<h2>API</h2>
+			<div class="card">
+			<h3>test(gist, expression, expect)</h3>
+
+				<p>This is the main function you will use to add your tests to the queue.</p>
+
+				<ul>
+   				<li>
+   					<b>gist:</b> A brief description of the test's purpose.
+   				</li>
+ 					<li>
+ 						<b>expression:</b> The test function, expression, value or Promise to be executed or evaluated.
+ 					</li>
+ 					<li>
+	  				<b>expect:</b> The expected result.
+	  			</li>
+				</ul>
+
+				<details>
+					<summary>Example</summary>
+
+					<a-code highlight="javascript">
+						test (
+							"foo should be the same as foo",
+							'foo' === 'foo',
+							true
+						)
+
+						test (
+							"myObj.arr should equal [1, 2, 3]",
+							equal(myObject.arr, [1, 2, 3]),
+							true
+						);
+
+						test (
+							"The expression can span multiple lines if it is enclosed in an anonymous function",
+							() => {
+				    		const foo = myObj.foo();
+				    		return foo;
+				    	},
+				    	"foo"
+						);
+					</a-code>
+				</details>
+			</div>
+
+			<div class="card">
+			<h3>info( "..." )</h3>
+				<p>info() simply prints some information.</p>
+
+				<a-code highlight="javascript">
+					info('Some helpful information');
+				</a-code>
+			</div>
+
+			<div class="card">
+			<h3>equal( a, b )</h3>
+				<p>Performs a deep equality comparison between two values. Handles primitives, objects, arrays, Dates, RegExps, Maps, Sets, and circular references.</p>
+
+				<ul>
+		   		<li><b>a:</b> The first value to compare.</li>
+			  	<li><b>b:</b> The second value to compare.</li>
+			   	<li><b>returns:</b> {boolean} True if the values are deeply equal, false otherwise.</li>
+				</ul>
+
+				<details>
+					<summary>Example</summary>
+
+					<a-code highlight="javascript">
+						const isEqual = equal(myArray, [1, 2, 3])
+
+						const isEqual = equal(myObject, { a:1, b:2, c:3 })
+
+						test(
+							"myObject.foo() should return 'foo'",
+							equal(myObject.foo(), 'foo'),
+							true
+						);
+					</a-code>
+				</details>
+			</div>
+
+			<div class="card">
+			<h3>wait( ms )</h3>
+				<p>Returns a promise that resolves after a specified number of milliseconds.</p>
+
+				<ul>
+					<li><b>ms:</b> The number of milliseconds to wait.</li>
+				</ul>
+
+				<details>
+					<summary>Example</summary>
+
+					<a-code highlight="javascript">
+						// pause execution for 50 milliseconds before continuing.
+						await wait(50);
+
+						test(
+							"Waiting a few milliseconds for an HTML element to be ready",
+							async () => {
+								const div = document.createElement('div');
+								document.body.append(div);
+								await wait(10);
+								return document.body.querySelector('div') instanceof HTMLElement;
+							},
+							true
+						);
+					</a-code>
+				</details>
+			</div>
+
+			<div class="card">
+			<h3>when( func, timeoutMs=1000, checkIntervalMs = 100 )</h3>
+
+				<p>The when() method is a tool for testing asynchronous behaviors where you don't know exactly when a condition will be met. It's especially useful for situations involving animations, network requests, or complex state updates.</p>
+
+				<ul>
+					<li>
+						<b>func:</b> A function that returns a value or defines the condition to wait for. It can be an anynomous function.
+					</li>
+					<li>
+						<b>timeoutMs:</b> The maximum time to wait in milliseconds.
+					</li>
+					<li>
+						<b>checkIntervalMs:</b> The interval between checks in milliseconds.
+					</li>
+					<li>
+						<b>returns:</b> A Promise that resolves with the first truthy result of the expression, or the last evaluated result on timeout.
+					</li>
+				</ul>
+
+				<details>
+					<summary>Examples</summary>
+
+					<a-code highlight="javascript">
+						//  Waiting for a Simple Asynchronous State Change
+
+						const state = {
+	  					isDataLoaded: false
+						};
+
+						function fetchData() {
+	  					setTimeout(() => {
+	    					state.isDataLoaded = true;
+	  					}, 50);
+						}
+
+						fetchData();
+
+						test(
+		  				"when() should wait for a state flag to become true",
+		  				async () => {
+		    				return await when(() => state.isDataLoaded);
+		  				},
+		  				true
+						);
+					</a-code>
+
+					<hr>
+
+					<a-code highlight="javascript">
+						// Waiting for a DOM Element to Appear
+
+						function showPopup() {
+						  setTimeout(() => {
+						    const el = document.createElement('div');
+						    el.id = 'popup-message';
+						    el.textContent = 'Success!';
+						    document.body.appendChild(el);
+						  }, 60);
+						}
+
+						showPopup();
+
+						test(
+						  "when() should wait for a DOM element to be created",
+						  async () => {
+						    const popupElement = await when(
+						      () => document.querySelector('#popup-message')
+						    );
+
+						    return popupElement.textContent;
+						  },
+						  'Success!'
+						);
+					</a-code>
+
+					<a-code highlight="javascript">
+						// Waiting for a Spy's Call Count to Reach a Target
+
+						const analytics = {
+						  ping: () => {
+						    // This method gets called by some other part of the app
+						    console.log('Ping!');
+						  }
+						};
+
+						function startPinging() {
+						  let count = 0;
+						  const intervalId = setInterval(() => {
+						    count++;
+						    analytics.ping();
+						    if (count === 3) {
+						      clearInterval(intervalId);
+						    }
+						  }, 20);
+						}
+
+						// Spy on the method we want to track
+						const pingSpy = spyOn(analytics, 'ping');
+
+						// Start the process that will call the spied method
+						startPinging();
+
+						runner.test(
+						  "when() should wait for a spy to be called 3 times",
+						  async () => {
+						    await when(() => pingSpy.callCount === 3);
+						  },
+						  true
+						);
+					</a-code>
+				</details>
+			</div>
+
+			<div class="card">
+			<h3>spyOn( obj, methodName )</h3>
+				<p>Creates a spy on a method of an object. The original method is replaced with a spy that tracks calls and arguments, and then executes the original method.</p>
+
+				<ul>
+					<li><b>obj:</b> The object containing the method to spy on.</li>
+					<li><b>methodName:</b> The name of the method to spy on.</li>
+					<li><b>returns:</b> A spy object with call tracking and a restore function.</li>
+				</ul>
+
+				<details>
+					<summary>Example</summary>
+
+					<a-code highlight="javascript">
+						const spy = spyOn(console, 'log');
+						console.log('hello');
+						// spy.callCount is 1
+						// spy.calls[0] is ['hello']
+
+						test(
+							"spy callCount should be 1",
+							spy.callCount,
+							1
+						);
+
+						test(
+							"console.log should have been called with the argument 'hello'",
+							spy.calls[0] === 'hello',
+							true
+						);
+
+						// Restore the original console.log method
+						spy.restore();
+					</a-code>
+				</details>
+			</div>
+
+			<div class="card">
+			<h3>*genCombos( options = {} )</h3>
+
+				<p>A generator function that yields all possible combinations of properties from an options object. This is useful for data-driven or combinatorial testing.</p>
+
+				<ul>
+					<li>
+						<b>options:</b> An object where keys are property names and values are either single values or an array of possible values.
+					</li>
+					<li>
+						<b>yields:</b> An object representing one unique combination of the provided options.
+					</li>
+				</ul>
+
+				<details style="padding: var(--pad)">
+					<summary>Examples</summary>
+
+					<a-code highlight="javascript">
+						const options = { a: [1, 2], b: 'c' };
+	  				for (const combo of genCombos(options)) {
+	  					// First iteration: combo is { a: 1, b: 'c' }
+	  					// Second iteration: combo is { a: 2, b: 'c' }
+	  				}
+					</a-code>
+
+					<h4>A More Detailed Example</h4>
+
+					<p>Imagine you have a simple Button class that generates a CSS class string based on its properties.</p>
+
+					<a-code highlight="javascript">
+						class Button {
+							constructor(options = {}) {
+								this.color = options.color || 'secondary'; // 'primary', 'secondary', 'danger'
+								this.size = options.size || 'medium';     // 'small', 'medium', 'large'
+								this.disabled = options.disabled || false; // true or false
+								this.text = options.text || 'Click Me';
+							}
+
+							getClassName() {
+								let classes = ['btn'];
+								classes.push(`btn-${this.color}`);
+								classes.push(`btn-${this.size}`);
+
+								if (this.disabled) {
+									classes.push('disabled');
+								}
+
+								return classes.join(' ');
+							}
+						}
+					</a-code>
+
+					<p>Instead of writing a separate test for every single button variation (primary small, primary medium, primary large, secondary small, etc.), we can use genCombos to generate all these variations for us and run them through a single test template.</p>
+
+					<a-code highlight="javascript" indent="2rem">
+						// 1. Define all the possible options for our button.
+						const buttonOptions = {
+							color: ['primary', 'secondary', 'danger'],
+							size: ['small', 'medium', 'large'],
+							disabled: [true, false]
+						};
+
+						// 2. Use a for...of loop to iterate through every combination generated.
+						// This will run 3 (colors) * 3 (sizes) * 2 (disabled states) = 18 times.
+						for (const combo of genCombos(buttonOptions)) {
+
+							// 3. For each combination, create a dynamic test case.
+							// The test name is generated from the combo, making failures easy to debug.
+							const gist = `Button should render classes for color:${combo.color}, size:${combo.size}, disabled:${combo.disabled}`;
+
+							// The test function creates a button with the current combo and gets its class name.
+							const testFn = () => {
+								const button = new Button(combo);
+								return button.getClassName();
+							};
+
+							// The expected result is also generated dynamically based on the combo's properties.
+							const expectedClasses = `btn btn-${combo.color} btn-${combo.size} ${combo.disabled ? ' disabled' : ''}`.trim();
+
+							// Add the fully formed, dynamic test to the queue.
+								runner.test(gist, testFn, expectedClasses);
+						}
+
+						// Now, when you call runner.run(), it will execute all 18 generated tests.
+					</a-code>
+
+					<p><strong>Why this is so powerful</strong></p>
+
+					<p>Scalability and Maintainability: Imagine you add a new size, 'xlarge'. Instead of writing several new tests, you only need to make one change:</p>
+
+					<a-code highlight="javascript">
+						// All you have to do is add 'xlarge' to the array.
+						const buttonOptions = {
+							color: ['primary', 'secondary', 'danger'],
+							size: ['small', 'medium', 'large', 'xlarge'],
+							disabled: [true, false]
+						};
+					</a-code>
+
+					<p>Your test suite instantly and automatically expands from 18 to 24 tests, covering all the new combinations without any extra effort.</p>
+				</details>
+			</div>
+
+			<div class="card">
+			<h3>benchmark( func, times = 1, thisArg = null, ...args)</h3>
+				<p>Benchmarks a function by running it a specified number of times and measuring the total execution time. Works with both synchronous and asynchronous functions.</p>
+
+				<ul>
+					<li>
+						<b>func:</b> The function to benchmark
+					</li>
+					<li>
+						<b>times:</b> The number of times to run the function.
+					</li>
+					<li>
+						<b>thisArg:</b> The 'this' context for the function.
+					</li>
+					<li>
+						<b>args:</b> Arguments to pass to the function.
+					</li>
+					<li>
+						<b>returns:</b> A promise that resolves with the total time taken in milliseconds.
+					</li>
+				</ul>
+
+				<details>
+					<summary>Examples</summary>
+
+					<a-code highlight="javascript">
+						const time = await benchmark(
+							() => myHeavyFunction(),
+							100
+						);
+	   				console.log(
+	   					`myHeavyFunction took ${time}ms to run 100 times.`
+	   				);
+					</a-code>
+
+					<hr>
+
+					<a-code highlight="javascript">
+						/**
+						* A function that simulates a heavy, synchronous calculation.
+						* @param {number} iterations - The higher the number, the longer it takes.
+						* @returns {number} - The result of the calculation.
+						*/
+						function heavyCalculation(iterations) {
+							let result = 0;
+							for (let i = 0; i < iterations; i++) {
+						  	// Perform some arbitrary math
+						  	result += Math.sqrt(i) * Math.sin(i);
+							}
+							return result;
+						}
+
+						// Now, we'll create a test that benchmarks this function and passes only if the execution time is less than 2000 milliseconds.
+
+						test(
+							"heavyCalculation() should complete in less than 2 seconds",
+							async () => {
+							  const iterations = 20_000_000;
+							  const timeLimitMs = 2000;
+
+							  // 1. Benchmark the heavy function, running it just 1 time.
+							  //    - heavyCalculation is the function to test.
+							  //    - 1 is the number of times to run it.
+							  //    - null is the 'this' context.
+							  //    - iterations is the argument to pass to heavyCalculation.
+
+							  const executionTime = await runner.benchmark(heavyCalculation, 1, null, iterations);
+							  return executionTime < timeLimitMs;
+							},
+							true
+						);
+					</a-code>
+				</details>
+			</div>
+	</section>
+</body>
+</html>

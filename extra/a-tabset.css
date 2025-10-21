@@ -1,0 +1,103 @@
+a-tabset {
+	--bg1-color: rgb(250,250,250);
+  --bg2-color: rgb(240,240,240);
+  --bg3-color: white;
+  --text-color: rgb(40,40,40);
+  --border-color: silver;
+  --accent-color: orange;
+  /* --pad: .5rem; */
+  /* --transition: .25s; */
+  /* --height: 100%; */
+
+
+  /* justify has no effect if .a-tabset-tab has flex:1 */
+  --justify: start;
+
+  & .a-tabset-tab {
+    border: 1px solid var(--border-color);
+    border-bottom-width: 0;
+    padding: var(--pad);
+  }
+
+  & .a-tabset-tab.tabset-column {
+    flex: 0;
+  }
+
+  & .a-tabset-tab.tabset-row:first-of-type {
+    border-radius: var(--pad) 0 0 0;
+  }
+
+  & .a-tabset-tab.tabset-row:last-of-type {
+    border-radius: 0 var(--pad) 0 0;
+  }
+
+  & .a-tabset-tab.tabset-row-reverse:first-of-type {
+    border-radius: 0 var(--pad) 0 0;
+  }
+
+  & .a-tabset-tab.tabset-row-reverse:last-of-type {
+    border-radius: var(--pad) 0 0 0;
+  }
+
+  & .a-tabset-tab.tabset-column:first-of-type {
+    border-radius: var(--pad) 0 0 0;
+  }
+
+  & .a-tabset-tab.tabset-column:last-of-type {
+    border-radius: 0 0 0 var(--pad);
+  }
+
+  & .a-tabset-tab.tabset-column-reverse:first-of-type {
+    border-radius: 0 var(--pad) 0 0;
+  }
+
+  & .a-tabset-tab.tabset-column-reverse:last-of-type {
+    border-radius: 0 0 var(--pad) 0;
+  }
+
+  & .a-tabset-tab:active {
+    background-color: var(--accent-color);
+  }
+
+  & .a-tabset-tab.active {
+    background-color: var(--bg3-color);
+  }
+
+  & .a-tabset-tab.tabset-column {
+    border-right-width: 0;
+    border-bottom-width: 1px;
+  }
+
+  & .a-tabset-tab.tabset-column-reverse {
+    border-left-width: 0;
+    border-bottom-width: 1px;
+  }
+
+  & .a-tabset-tab.tabset-column.active,
+  & .a-tabset-tab.tabset-column-reverse.active {}
+
+  & .a-tabset-content {
+    background-color: var(--bg3-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0 0 var(--pad) var(--pad);
+    padding: var(--pad);
+  }
+
+  & .a-tabset-content.active {}
+}
+
+@media (prefers-color-scheme: dark) {
+  a-tabset {
+    --bg1-color: rgb(35,35,35);
+    --bg2-color: rgb(40,40,40);
+    --bg3-color: rgb(60,60,60);
+    --border-color: dimgray;
+    --accent-color: orange;
+    --text-color: rgb(240,240,240);
+  }
+}
+
+a-tabset::part(main) {}
+a-tabset::part(tabs){}
+a-tabset::part(content) {}
+

@@ -1,0 +1,446 @@
+:root {
+	--bg1-color: snow;
+	--bg2-color: linen;
+	--bg3-color: floralwhite;
+	--bg4-color:  white;
+	--accent-color: orange;
+	--accent-text: rgb(40,40,40);
+	--border-color: silver;
+	--text-color: dimgray;
+	--min: 35px;
+	--pad: .5rem;
+	--gap:  .25rem;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+    --bg1-color: rgb(20, 20, 20);
+		--bg2-color: rgb(40,40,40);
+		--bg3-color: rgb(60, 60, 60);
+		--bg4-color:  gainsboro;
+		--border-color: dimgray;
+		--text-color: snow;
+	}
+}
+
+@media (max-width: 376px) {
+	:root {
+		--pad: 2px;
+		--gap: 2px;
+	}
+
+	button
+	{ padding: 1px; }
+
+	.flex > * {
+		min-width: 200px;
+	}
+}
+
+body {
+  background: var(--bg1-color);
+  color: var(--text-color);
+	font-family: sans-serif;
+	font-size: 16px;
+  height: 100%;
+  letter-spacing: .1rem;
+  line-height: 1.5rem;
+  margin: auto;
+	max-width: 1024px;
+	padding: var(--pad);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) var(--bg3-color);
+}
+
+/**** Backgrounds ****/
+	code
+	{ background: var(--bg1-color); }
+
+	aside,
+	details,
+	section,
+  summary,
+  .bg2,
+	.card > div
+  { background: var(--bg2-color) }
+
+	button,
+	.card
+	{ background: var(--bg3-color) }
+
+	button.primary,
+	hr
+	{ background: var(--accent-color); }
+
+	input,
+	select,
+	textarea
+	{ background: var(--bg4-color); }
+
+  button:hover,
+  summary:hover,
+  details[open] > summary,
+  option:checked
+  { background: var(--accent-color) }
+
+  button:active {
+  	background: initial;
+  }
+
+/**** Borders ****/
+	button,
+	details,
+	input,
+	select,
+	option,
+	textarea,
+	.card
+	{ border: 1px solid var(--border-color); }
+
+	output
+	{ border: 1px dashed var(--border-color); }
+
+  article,
+  button,
+  details,
+  input,
+  section,
+  select,
+  summary,
+  textarea,
+  .card
+  { border-radius: .5rem; }
+
+  .nofrills {
+  	border: none;
+  	border-radius: 0;
+  }
+
+  [contenteditable]:hover
+  { border-color: var(--accent-color); }
+
+/**** Text ****/
+	a
+	{ color: var(--accent-color) }
+
+	button
+	{ color: var(--text-color) }
+
+	button.primary,
+	input,
+	select,
+	textarea
+	{ color: var(--accent-text); }
+
+	input,
+	select,
+	option,
+	textarea
+	{ font-size: 1rem; }
+
+	button,
+	label,
+	select,
+	option
+	{ font-weight: bold; }
+
+	summary {
+		font-size: x-large;
+		font-weight: bold;
+	}
+
+	code
+	{ font-family: courier, monospace; }
+
+	.nofrills {
+		font-size: 1rem;
+	}
+
+/**** Cursor ****/
+	button,
+	input[type="submit"],
+	input[type="button"],
+	input[type="color"],
+	input[type="radio"],
+	input[type="checkbox"],
+	option,
+	select,
+	summary
+	{ cursor: pointer; }
+
+/**** Shadows ****/
+	aside
+	{ box-shadow: 0 2px 5px black; }
+
+/**** Caret ****/
+	[contenteditable]
+	{ caret-color: var(--accent-color); }
+
+/**** Structure ****/
+	body *
+	{ box-sizing: border-box; }
+
+	button
+	{ padding: .5rem; }
+
+	code
+	{ padding:  0 var(--pad); }
+
+	details#readme
+	{ overflow: auto; }
+
+	details#readme[open] {
+		height: 100%;
+		max-height: 80vh;
+	}
+
+	details[open] > summary
+	{ margin-bottom: 1rem; }
+
+	div
+	{ align-items: center; }
+
+	h2
+	{ margin-left: 1rem; }
+
+	header
+	{ min-height: 75px; }
+
+	hr
+	{ height: 1px; }
+
+	button,
+	input,
+	select
+	{ min-height: var(--min); }
+
+	button,
+	input[type="radio"],
+	input[type="checkbox"],
+	input[type="color"] {
+		min-width: var(--min);
+		margin: 0;
+	}
+
+	input:not([type="color"]),
+	textarea
+	{ padding: var(--pad); }
+
+	label
+	{ display: inline-block; }
+
+	li
+	{ margin-bottom: 1rem; }
+
+	option
+	{ padding: var(--pad); }
+
+	output
+	{
+		display: inline-block;
+		font-family: "Courier New" ui-monospace;
+		min-width: var(--min);
+		min-height: 1ch;
+		white-space: pre-wrap;
+	}
+
+	pre {
+		margin: 0;
+		min-height: var(--min);
+	}
+
+	section {
+		margin: 0 auto var(--pad) auto;
+		padding: var(--pad);
+	}
+
+	select::-webkit-scrollbar
+	{ display: none; }
+
+	select {
+		min-width: 100px;
+	}
+
+	select[multiple] {
+		padding: 0;
+	}
+
+	summary {
+		padding: var(--pad);
+	}
+
+	textarea
+	{ min-height: var(--min); }
+
+	ul, ol
+	{ margin: 0; }
+
+	.card {
+		min-height: 85px;
+		padding:  var(--pad);
+	}
+
+	.card > div {
+    padding: var(--pad);
+  }
+
+	.nofrills {
+		padding: 5px;
+		min-height: unset;
+	}
+
+	.sticky {
+		position: sticky;
+		top: 0;
+	}
+
+	#instructions {
+		padding: 1rem;
+		white-space:pre-wrap;
+	}
+
+/**** FLEX ****/
+
+	.flex {
+		align-items: center;
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--gap);
+		row-gap: 1rem;
+	}
+
+	.flex1
+	{ flex: 1; }
+
+	.flex2
+	{ flex: 2; }
+
+	.flex100
+	{ flex-basis: 100%; }
+
+	.flex50
+	{ flex-basis: 50%; }
+
+	.flex30
+	{ flex-basis: 30%; }
+
+	.flex25
+	{ flex-basis: 25%; }
+
+	.flex20
+	{ flex-basis: 20%; }
+
+	.flex16
+	{ flex-basis: 16%; }
+
+	.column
+	{ flex-direction: column; }
+
+	.row
+	{ flex-direction: row; }
+
+	.row-reverse
+	{ flex-direction: row-reverse; }
+
+	.center
+	{ justify-content: center; }
+
+	.vcenter,
+	.middle
+	.column.center
+	{ align-items: center; }
+
+	.end
+	{ justify-content: flex-end; }
+
+	.vend,
+	.bottom,
+	.column.end
+	{ align-items: flex-end; }
+
+	.start
+	{ justify-content: start; }
+
+	.top,
+	.vstart,
+	.column.start
+	{ align-items: flex-start; }
+
+	.column.vstart,
+	.column.top
+	{ justify-content: flex-start; }
+
+	.stretch
+	{ align-items: stretch; }
+
+	.space-between
+	{ justify-content: space-between; }
+
+	.space-around
+	{ justify-content: space-around; }
+
+	.gap0
+	{ gap: 0; }
+
+	.gap2
+	{ gap: calc(var(--gap) * 2); }
+
+	.gap3
+	{ gap: calc(var(--gap) * 3); }
+
+	.gap4
+	{ gap: calc(var(--gap) * 4); }
+
+	.nowrap {
+		flex-wrap: nowrap;
+	}
+
+	.wrap {
+		flex-wrap: wrap;
+	}
+
+/**** GRID ****/
+
+	.grid {
+		display: grid;
+		gap: var(--pad);
+	}
+
+	.col12
+	{ grid-template-columns: 1fr 2fr; }
+
+	.col2
+	{ grid-template-columns: 1fr 1fr; }
+
+	.col3
+	{ grid-template-columns: 1fr 1fr 1fr; }
+
+	.align-center
+	{ align-items: center; }
+
+	.align-end
+	{ align-items: end; }
+
+	.align-start
+	{ align-items: start; }
+
+	.align-stretch
+	{ align-items: stretch; }
+
+	.justify-center
+	{ justify-items: center; }
+
+	.justify-end
+	{ justify-items: end; }
+
+	.justify-start
+	{ justify-items: start; }
+
+	.justify-stretch
+	{ justify-items: stretch; }
+
+	.nowrap
+	{ flex-wrap: nowrap; }
