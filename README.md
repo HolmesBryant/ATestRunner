@@ -1,5 +1,7 @@
 # ATestRunner
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://mit-license.org/)
+
 A modern, flexible JavaScript test runner for the browser.
 
 ATestRunner is a comprehensive suite for defining, running, and reporting tests. It operates on a queue-based system, allowing for asynchronous test execution with flexible output options to the console or a specified DOM element.
@@ -12,12 +14,19 @@ Demo: [https://holmesbryant.github.io/ATestRunner/](https://holmesbryant.github.
 ## Features
 
 *   **Asynchronous Test Execution:** Runs tests asynchronously, making it suitable for testing modern JavaScript features like Promises and async/await.
+
 *   **Flexible Output:** View test results in the browser's developer console or send them to any HTML element for custom display.
+
 *   **Deep Equality Checks:** A powerful `equal()` method to compare complex objects, arrays, Maps, Sets, and even handles circular references.
+
 *   **Combinatorial Testing:** The `genCombos()` generator function makes it easy to create data-driven tests for numerous combinations of inputs.
+
 *   **Async Utilities:** Includes `wait()` and `when()` for handling and testing asynchronous operations with timeouts.
+
 *   **Spies:** Built-in `spyOn()` functionality to mock and track method calls on any object.
+
 *   **Benchmarking:** The `benchmark()` and `profile()` methods allow for simple performance testing of your functions.
+
 *   **Zero Dependencies:** A lightweight, standalone library with no external dependencies.
 
 ## Change Log
@@ -29,18 +38,20 @@ Demo: [https://holmesbryant.github.io/ATestRunner/](https://holmesbryant.github.
 To use ATestRunner, simply import your test suite into your html file.
 
 ```html
-	<!-- index.html -->
-	<!DOCTYPE html>
-	<html>
-	<head>
-	    <title>My Project Tests</title>
-	    <script type="module" src="tests/my-tests.js"></script>
-	</head>
-	<body>
-	    <!-- Optional: Add an element to display test results -->
-	    <div id="test-results"></div>
-	</body>
-	</html>
+
+		<!-- index.html -->
+		<!DOCTYPE html>
+		<html>
+		<head>
+		    <title>My Project Tests</title>
+		    <script type="module" src="tests/my-tests.js"></script>
+		</head>
+		<body>
+		    <!-- Optional: Add an element to display test results -->
+		    <div id="test-results"></div>
+		</body>
+		</html>
+
 ```
 
 ## Usage
@@ -52,17 +63,17 @@ Create a new test file and import the ATestRunner class. Instantiate the runner 
 The test() method is the core of the runner. It queues a test for execution.
 
 ```javascript
-	// tests/my-tests.js
-	import ATestRunner from './ATestRunner.min.js';
-	// Pass import.meta.url to the constructor for accurate line number reporting.
-	const runner = new ATestRunner(import.meta.url);
-	const { test } = runner;
-	test(
-	    "'foo' should be equal to 'foo'",
-	    'foo' === 'foo',
-	    true
-	);
-	runner.run();
+		// tests/my-tests.js
+		import ATestRunner from './ATestRunner.min.js';
+		// Pass import.meta.url to the constructor for accurate line number reporting.
+		const runner = new ATestRunner(import.meta.url);
+		const { test } = runner;
+		test(
+		    "'foo' should be equal to 'foo'",
+		    'foo' === 'foo',
+		    true
+		);
+		runner.run();
 ```
 
 **Why pass `import.meta.url` ?**
