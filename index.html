@@ -4,14 +4,10 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>ATestRunner Javascript Test Runner</title>
-	<script type="module" src="tests/atestrunner.tests.js"></script>
-	<script type="module" src="tests/test-object.tests.js"></script>
 	<script type="module" src="extra/a-markdown.min.js"></script>
-	<script type="module" src="extra/a-tabset.min.js"></script>
 	<script type="module" src="extra/a-code.min.js"></script>
 
 	<link rel="stylesheet" href="extra/styles.css">
-	<link rel="stylesheet" href="extra/a-tabset.css">
 	<link rel="stylesheet" href="extra/a-code.css">
 </head>
 <body>
@@ -26,65 +22,29 @@
 	</section>
 
 	<section>
-	<h2>Demo</h2>
-		<a-tabset>
-			<b slot="title">
-				Default Behavior
-			</b>
-			<div slot="content">
-				<p>
-				The default behavior is to log test results to the console.</p>
-				<p>To see the results, open the web browser's <code>Developer tools</code> and view the console.</p>
-			</div>
-
-			<b slot="title">
-				Output sent to HTML Element
-			</b>
-			<div slot="content">
-				<p>In this example, the test results are sent to a configurable html element as a series of <code>output</code> elements containing JSON formatted strings.</p>
-				<p>The raw output is rather unimpressive, however the standard JSON format can easily be transformed by javascript into pretty much anything you want.</p>
-
-				<section id="test-output" class="flex column stretch"></section>
-			</div>
-		</a-tabset>
+		<p>ATestRunner is a comprehensive suite for defining, running, and reporting tests which require a DOM environment. It operates on a queue-based system, allowing for asynchronous test execution with flexible output options to the console or a specified DOM element.</p>
 	</section>
 
 	<section>
-	<h2>Setup</h2>
-		<div class="card">
-		<h3>Standard Setup</h3>
-			<a-code highlight="javascript">
-				<textarea>
-					// tests/my-tests.js
+	<h2>Installation</h2>
+		<p>Download `ATestRunner.min.js` from the `src` directory and include it in an HTML page.</p>
+	</section>
 
-					import ATestRunner from './ATestrunner.min.js';
-					import myMod from '../src/myModule.js';
-					const runner = new ATestRunner(import.meta.url)
+	<section>
+	<h2>Quick Start</h2>
 
-					/* This list of properties describes the full public API.
-					You will probably not need all of them in your test suite.
-					You can safely omit the ones you don't need.*/
-					const {benchmark, equal, genCombos, info, spyOn, test, wait, when} = runner;
-
-					test (
-						"getArr() should return an array",
-						Array.isArray(myMod.getArr()),
-						true
-					);
-
-					// more tests...
-
-					runner.run();
-				</textarea>
-			</a-code>
+		<p>The default behavior is to log test results to the console.</p>
 
 			<a-code highlight>
 				<textarea>
-					<!-- test-results.html -->
+					<!-----------------------
+					The HTML page
+					/tests/test-results.html
+					------------------------>
 
 					<head>
 						...
-						<script type="module" src="tests/my-tests.js">
+						<script type="module" src="testobject.test.js">
 						</script>
 						...
 					</head>
@@ -93,77 +53,136 @@
 					</body>
 				</textarea>
 			</a-code>
+	</section>
 
-			<a-code highlight="javascript">
-				// src/myModule.js
+	<section>
+	<h2>Sample Test Suite</h2>
 
-				export default {
-					foo: 'foo',
-					bar: null,
-					baz: undefined,
-					arr: [1,2,3],
-					pojo: {a:1, b:2, c:3},
-					async asyncFunc(arg) {
-						return new Promise((resolve, reject) => {
-			  			setTimeout(() => { resolve(arg ?? 'foo') }, 300);
-						});
-					},
-					getArr() { return this.arr }
-				};
-			</a-code>
-		</div>
+		<a-code highlight="javascript">
+			/********************
+			* The test suite
+			* /tests/testobject.test.js
+			*********************/
 
-		<div class="card">
-		<h3>Sending output to an HTML element</h3>
-			<a-code highlight="javascript">
-				<textarea>
-					// tests/my-tests.js
+			import obj from '../src/testObject.js';
+			import ATestRunner from './ATestrunner.js';
+			const runner = new ATestRunner(import.meta.url)
+			const {equal, info, test, wait, when} = runner;
 
-					import ATestRunner from './ATestrunner.min.js';
-					import myMod from '../src/myModule.js';
-					const runner = new ATestRunner(import.meta.url)
+			// Helper function
+			function insertElem(tag) {
+				const elem = document.createElement(tag);
+				document.body.append(elem);
+			}
 
-					/* Point `output` to a CSS selector */
-					runner.output = '#test-results';
+			info("Testing testObject")
 
-					const { equal, info, test } = runner;
+			info("--- Basic Properties ---")
 
-					info( 'Testing this thing' );
+			test(
+				"foo should be 'foo'",
+				obj.foo,
+				'foo'
+			);
 
-					test(
-						"pojo should be {a:1, b:2, c:3}",
-						equal( myMod.pojo, {a:1, b:2, c:3}),
-						true
-					);
+			test(
+				'bar should be null',
+				obj.bar,
+				null
+			);
 
-					runner.run();
-				</textarea>
-			</a-code>
+			test(
+				"baz should be undefined",
+				obj.baz,
+				undefined
+			);
 
-			<a-code highlight>
-				<textarea>
-					<!-- test-results.html -->
+			test(
+				"arr should be an Array",
+				Array.isArray(obj.arr),
+				true
+			);
 
-					<head>
-						...
-						<script type="module" src="tests/my-tests.js">
-						</script>
-						...
-					</head>
-					<body>
-						<!--
-						Remember to include the HTML element
-						to which you want to send the results.
-						-->
-						<div id="test-results"></div>
-					</body>
-				</textarea>
-			</a-code>
-		</div>
+			test(
+				"pojo.a should be 1",
+				obj.pojo.a,
+				1
+			);
+
+			info("--- methods ---");
+
+			test(
+				"getArr() should return [1,2,3]",
+				equal(obj.getArr(), [1,2,3]),
+				true
+			);
+
+			test(
+				"getPojo should return {a:1, b:2, c:3}",
+				equal(obj.getPojo(), {a:1, b:2, c:3}),
+				true
+			);
+
+			test(
+				"asyncFunc() should return 'foo'",
+				async () => await obj.asyncFunc(),
+				'foo'
+			);
+
+			test(
+				"testing insertElem('pre') with when()",
+				async () => {
+					insertElem('pre');
+					await when(document.body.querySelector('pre'));
+					const el = document.body.querySelector('pre');
+					el.remove();
+					return el instanceof HTMLPreElement;
+				},
+				true
+			)
+
+			test(
+				"testing insertElem('pre') with wait()",
+				async () => {
+					insertElem('pre');
+					wait(10);
+					const el = document.body.querySelector('pre');
+					el.remove();
+					return el instanceof HTMLPreElement;
+				},
+				true
+			)
+
+			runner.run();
+		</a-code>
+
+		<hr>
+
+		<a-code highlight="javascript">
+			/**************************
+			* The object being tested
+			* /src/testObj.js
+			**************************/
+
+			export default {
+				foo: 'foo',
+				bar: null,
+				baz: undefined,
+				arr: [1,2,3],
+				pojo: {a:1, b:2, c:3},
+				async asyncFunc(arg) {
+					return new Promise((resolve, reject) => {
+		  			setTimeout(() => { resolve(arg ?? 'foo') }, 300);
+					});
+				},
+				getArr() { return this.arr },
+				getPojo() { return this.pojo }
+			};
+		</a-code>
 	</section>
 
 	<section class="flex column stretch">
-		<h2>API</h2>
+	<h2>API</h2>
 			<div class="card">
 			<h3>test(gist, expression, expect)</h3>
 
@@ -602,6 +621,82 @@
 					</a-code>
 				</details>
 			</div>
+	</section>
+
+	<section>
+	<h2>Sending output to an HTML element</h2>
+		<p>
+			When <code>output</code> is set to a CSS selector (or an instance of HTMLElement), the test results are sent to the html element as a series of <code>output</code> elements containing JSON formatted strings.
+		</p>
+
+		<a-code highlight="javascript">
+			/********************
+			* The test suite
+			* /tests/testobject.test.js
+			*********************/
+
+			import obj from '../src/testObject.js';
+			import ATestRunner from './ATestrunner.js';
+			const runner = new ATestRunner(import.meta.url)
+
+			// Set output to a CSS selector
+			runner.output = "#test-results";
+
+			// the tests ...
+		</a-code>
+
+		<hr>
+
+		<a-code highlight>
+			<textarea>
+				<!-------------------
+				/tests/test-results.html
+				-------------------->
+
+				<head>
+					...
+					<script type="module" src="testobj.test.js">
+					</script>
+				</head>
+				<body>
+					<div id="test-results">
+						<output>
+							{
+							  "gist": "Testing this thing",
+							  "verdict": "info"
+							}
+						</output>
+
+						<output>
+							{
+							  "gist": "module should work",
+							  "verdict": "pass",
+							  "result": true,
+							  "expect": true,
+							  "line": 12
+							}
+						</output>
+
+						<output>
+							{
+							  "gist": "A failed test",
+							  "verdict": "fail",
+							  "result": false,
+							  "expect": true,
+							  "line": 16
+							}
+						</output>
+
+						<output>
+							{
+							  "gist": "All tests completed",
+							  "verdict": "done"
+							}
+						</output>
+					</div> <!-- /#test-results -->
+				</body>
+			</textarea>
+		</a-code>
 	</section>
 </body>
 </html>
