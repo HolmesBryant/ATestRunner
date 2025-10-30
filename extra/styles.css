@@ -1,12 +1,13 @@
 :root {
-	--bg1-color: snow;
-	--bg2-color: linen;
-	--bg3-color: floralwhite;
-	--bg4-color:  white;
-	--accent-color: orange;
-	--accent-text: rgb(40,40,40);
-	--border-color: silver;
-	--text-color: dimgray;
+	--bg1-color: hsl(45, 40%, 98.039%);
+	--bg2-color: hsl(40, 23.077%, 94.902%);
+	--bg3-color: hsl(40, 17.647%, 90%);
+	--bg4-color: hsl(38.182, 15.068%, 85.686%);
+	--accent-color: hsl(26.25, 12.698%, 75.294%);
+	--accent-text: dodgerblue;
+	--border-color: hsl(40, 17.647%, 83.333%);
+	--border-radius: .5rem;
+	--text-color: hsl(36, 8.8757%, 33.137%);
 	--min: 35px;
 	--pad: .5rem;
 	--gap:  .25rem;
@@ -20,6 +21,8 @@
 		--bg4-color:  gainsboro;
 		--border-color: dimgray;
 		--text-color: snow;
+		--accent-color: hsl(26.25, 12.698%, 60%);
+		--accent-text: lime;
 	}
 }
 
@@ -56,6 +59,7 @@ body {
 }
 
 /**** Backgrounds ****/
+	pre,
 	code
 	{ background: var(--bg1-color); }
 
@@ -68,17 +72,19 @@ body {
   { background: var(--bg2-color) }
 
 	button,
+	.button,
 	.card
 	{ background: var(--bg3-color) }
-
-	button.primary,
-	hr
-	{ background: var(--accent-color); }
 
 	input,
 	select,
 	textarea
 	{ background: var(--bg4-color); }
+
+	hr,
+	button.primary,
+	.button.primary
+	{ background: var(--accent-color); }
 
   button:hover,
   summary:hover,
@@ -112,7 +118,11 @@ body {
   summary,
   textarea,
   .card
-  { border-radius: .5rem; }
+  { border-radius: var(--border-radius) }
+
+  pre,
+  code
+  { border-radius: 5px; }
 
   .nofrills {
   	border: none;
@@ -123,8 +133,10 @@ body {
   { border-color: var(--accent-color); }
 
 /**** Text ****/
-	a
-	{ color: var(--accent-color) }
+	a,
+	pre,
+	code
+	{ color: var(--accent-text) }
 
 	button
 	{ color: var(--text-color) }
@@ -141,6 +153,7 @@ body {
 	textarea
 	{ font-size: 1rem; }
 
+	a,
 	button,
 	label,
 	select,
@@ -148,16 +161,25 @@ body {
 	{ font-weight: bold; }
 
 	summary {
-		font-size: x-large;
+		font-size: large;
 		font-weight: bold;
 	}
 
+	pre,
 	code
-	{ font-family: courier, monospace; }
+	{ font-family: "Courier New", ui-monospace; }
+
 
 	.nofrills {
 		font-size: 1rem;
 	}
+
+	a:hover,
+	a:focus
+	{ text-decoration: none; }
+
+	a:active
+	{ text-shadow: -2px -2px 2px dimgray; }
 
 /**** Cursor ****/
 	button,
@@ -187,7 +209,11 @@ body {
 	{ padding: .5rem; }
 
 	code
-	{ padding:  0 var(--pad); }
+	{ padding: 0.2rem 0.4rem; }
+
+	details[open] {
+		padding: 0 var(--pad) 0 var(--pad);
+	}
 
 	details#readme
 	{ overflow: auto; }
@@ -197,8 +223,10 @@ body {
 		max-height: 80vh;
 	}
 
-	details[open] > summary
-	{ margin-bottom: 1rem; }
+	details#readme[open] summary {
+		position: sticky;
+		top: 0;
+	}
 
 	div
 	{ align-items: center; }
@@ -207,7 +235,10 @@ body {
 	{ margin-left: 1rem; }
 
 	header
-	{ min-height: 75px; }
+	{
+		min-height: 75px;
+		margin-bottom: 1rem;
+	}
 
 	hr
 	{ height: 1px; }
@@ -248,8 +279,9 @@ body {
 	}
 
 	pre {
-		margin: 0;
+		padding: var(--pad);
 		min-height: var(--min);
+	  overflow-x: auto;
 	}
 
 	section {
@@ -280,6 +312,7 @@ body {
 
 	.card {
 		min-height: 85px;
+		overflow: auto;
 		padding:  var(--pad);
 	}
 
@@ -322,19 +355,37 @@ body {
 	{ flex-basis: 100%; }
 
 	.flex50
-	{ flex-basis: 50%; }
+	{ flex-basis: 49.7%; }
 
 	.flex30
-	{ flex-basis: 30%; }
+	{ flex-basis: 29.7%; }
 
 	.flex25
-	{ flex-basis: 25%; }
+	{ flex-basis: 24.7%; }
 
 	.flex20
-	{ flex-basis: 20%; }
+	{ flex-basis: 19.7%; }
 
 	.flex16
-	{ flex-basis: 16%; }
+	{ flex-basis: 15.7%; }
+
+	.flex240
+	{ flex-basis: 240px; }
+
+	.flex360
+	{ flex-basis: 360px; }
+
+	.flex480
+	{ flex-basis: 480px; }
+
+	.flex520
+	{ flex-basis: 520px; }
+
+	.flex640
+	{ flex-basis: 640px; }
+
+	.flex800
+	{ flex-basis: 800px; }
 
 	.column
 	{ flex-direction: column; }
@@ -375,6 +426,10 @@ body {
 
 	.stretch
 	{ align-items: stretch; }
+
+	.stretch > * {
+		flex: 1;
+	}
 
 	.space-between
 	{ justify-content: space-between; }

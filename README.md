@@ -13,21 +13,21 @@ Demo: [https://holmesbryant.github.io/ATestRunner/](https://holmesbryant.github.
 
 ## Features
 
-*   **Asynchronous Test Execution:** Runs tests asynchronously, making it suitable for testing modern JavaScript features like Promises and async/await.
+* **Asynchronous Test Execution:** Runs tests asynchronously, making it suitable for testing modern JavaScript features like Promises and async/await.
 
-*   **Flexible Output:** View test results in the browser's developer console or send them to any HTML element for custom display.
+* **Flexible Output:** View test results in the browser's developer console or send them to any HTML element for custom display.
 
-*   **Deep Equality Checks:** A powerful `equal()` method to compare complex objects, arrays, Maps, Sets, and even handles circular references.
+* **Deep Equality Checks:** A powerful `equal()` method to compare complex objects, arrays, Maps, Sets, and even handles circular references.
 
-*   **Combinatorial Testing:** The `genCombos()` generator function makes it easy to create data-driven tests for numerous combinations of inputs.
+* **Combinatorial Testing:** The `genCombos()` generator function makes it easy to create data-driven tests for numerous combinations of inputs.
 
-*   **Async Utilities:** Includes `wait()` and `when()` for handling and testing asynchronous operations with timeouts.
+* **Async Utilities:** Includes `wait()` and `when()` for handling and testing asynchronous operations with timeouts.
 
-*   **Spies:** Built-in `spyOn()` functionality to mock and track method calls on any object.
+* **Spies:** Built-in `spyOn()` functionality to mock and track method calls on any object.
 
-*   **Benchmarking:** The `benchmark()` and `profile()` methods allow for simple performance testing of your functions.
+* **Benchmarking:** The `benchmark()` method allows for simple performance testing of your functions.
 
-*   **Zero Dependencies:** A lightweight, standalone library with no external dependencies.
+* **Zero Dependencies:** A lightweight, standalone library with no external dependencies.
 
 ## Change Log
 
@@ -35,45 +35,34 @@ Demo: [https://holmesbryant.github.io/ATestRunner/](https://holmesbryant.github.
 
 ## Installation
 
-To use ATestRunner, simply import your test suite into your html file.
+Download the script and include it in your project.
+
+## Quick Start
+
+To use ATestRunner, write a test suite and import it into an html file.
 
 ```html
-
-		<!-- index.html -->
-		<!DOCTYPE html>
-		<html>
-		<head>
-		    <title>My Project Tests</title>
-		    <script type="module" src="tests/my-tests.js"></script>
-		</head>
-		<body>
-		    <!-- Optional: Add an element to display test results -->
-		    <div id="test-results"></div>
-		</body>
-		</html>
-
+<!-- tests.html -->
+<head>
+  ...
+  <script type="module" src="my-tests.js"></script>
+</head>
+<body>
+	<p>Open the developer console to view results</p>
+</body>
 ```
 
-## Usage
-
-Create a new test file and import the ATestRunner class. Instantiate the runner and use its methods to define your tests.
-
-### Basic Test
-
-The test() method is the core of the runner. It queues a test for execution.
-
 ```javascript
-		// tests/my-tests.js
-		import ATestRunner from './ATestRunner.min.js';
-		// Pass import.meta.url to the constructor for accurate line number reporting.
-		const runner = new ATestRunner(import.meta.url);
-		const { test } = runner;
-		test(
-		    "'foo' should be equal to 'foo'",
-		    'foo' === 'foo',
-		    true
-		);
-		runner.run();
+// my-tests.js
+import app from '../src/app.js';
+import ATestRunner from './ATestrunner.min.js';
+const runner = new ATestRunner(import.meta.url)
+const {equal, info, spyOn, test, wait, when} = runner;
+
+info("Testing My App");
+test("App should work", app.works(), true);
+...
+runner.run();
 ```
 
 **Why pass `import.meta.url` ?**
@@ -88,27 +77,16 @@ By default, results are logged to the console. To send output to an HTML element
 
 ## API
 
-Here's a detailed look at the public API of `ATestRunner`.
-
-To use any of these functions without having to write myRunnerInstance.whatever(), you can define them before you write your tests.
-
-```javascript
-		const runner = new ATestRunner(import.meta.url);
-		const {test, equal, wait, when, etc...} = runner;
-
-		// now, instead of writing
-		runner.test(...)
-		// you can write
-		test(...)
-```
-
 #### `test(gist, testFn, expect)`
 
-Queues a test for execution.
+The test() method is the core of the runner. It queues a test for execution.
 
-*   `gist` (String): A brief description of the test's purpose.
-*   `testFn` (Function|*): The test function to execute, or a value/Promise to be evaluated.
-*   `expect` (*): The expected result of the test function.
+- `gist` (String): A brief description of the test's purpose.
+
+- `testFn` (Function|any): The test function to execute, or an expression / Promise to be evaluated.
+
+- `expect` (any): The expected result of the test function.
+
 
 #### `info(message)`
 
@@ -120,9 +98,9 @@ Queues an informational message to be displayed in the test results.
 
 Performs a deep equality comparison between two values.
 
-*   `a` (*): The first value to compare.
-*   `b` (*): The second value to compare.
-*   **Returns:** `boolean` - `true` if the values are deeply equal, otherwise `false`.
+*   `a` (any): The first value to compare.
+*   `b` (any): The second value to compare.
+*   Returns `boolean` - `true` if the values are deeply equal, otherwise `false`.
 
 #### `wait(ms)`
 
@@ -137,7 +115,7 @@ Waits for an expression, function, or promise to become "truthy".
 *   `expression` (Function|Promise): The condition to wait for.
 *   `timeoutMs` (Number): The maximum time to wait in milliseconds.
 *   `checkIntervalMs` (Number): The interval between checks in milliseconds.
-*   **Returns:** `Promise<*>` - A promise that resolves with the first truthy result of the expression.
+*   **Returns:** `Promise` - A promise that resolves with the first truthy result of the expression, or the last evaluated result on timeout.
 
 #### `spyOn(obj, methodName)`
 
@@ -160,8 +138,8 @@ Benchmarks a function by running it a specified number of times and measuring th
 
 *   `fn` (Function): The function to benchmark.
 *   `times` (Number): The number of times to run the function.
-*   `thisArg` (*): The 'this' context for the function.
-*   `...args` (*): Arguments to pass to the function.
+*   `thisArg`: The 'this' context for the function.
+*   `...args`: Arguments to pass to the function.
 *   **Returns:** `Promise<number>` - A promise that resolves with the total time taken in milliseconds.
 
 ## Running the Included Tests

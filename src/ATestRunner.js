@@ -56,6 +56,7 @@ export default class ATestRunner {
     this.test = this.test.bind(this);
     this.when = this.when.bind(this);
     this.profile = this.profile.bind(this);
+    this.run = this.run.bind(this);
   }
 
   // Public
