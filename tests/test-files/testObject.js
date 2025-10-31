@@ -15,6 +15,9 @@ export default {
 		const elem = document.createElement(tag);
 		document.body.append(elem);
 	},
+	throwsError() {
+		throw new Error('Oopsie!');
+	},
 	get code() {
   	const tempObj = this;
   	delete tempObj.code;

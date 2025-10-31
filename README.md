@@ -11,6 +11,11 @@ ATestRunner works with ECMAScript **modules**. That means the code you want to t
 Demo: [https://holmesbryant.github.io/ATestRunner/](https://holmesbryant.github.io/ATestRunner/)
 
 
+## Change Log
+v1.0.1: Made it so the ProgressEvent fires after each test is resolved for better test progress reporting.
+v1.0.0: Initial Commit
+
+
 ## Features
 
 * **Asynchronous Test Execution:** Runs tests asynchronously, making it suitable for testing modern JavaScript features like Promises and async/await.

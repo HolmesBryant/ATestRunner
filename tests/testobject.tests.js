@@ -1,6 +1,7 @@
 import obj from './test-files/testObject.js';
 import ATestRunner from '../src/ATestrunner.js';
-const runner = new ATestRunner(import.meta.url)
+const runner = new ATestRunner(import.meta.url);
+runner.doneMesage = 'Yo Dawg!'
 const {equal, info, test, wait, when} = runner;
 
 function insertElem(tag) {
@@ -85,6 +86,18 @@ test(
 	},
 	true
 )
+
+test(
+	"this test should FAIL",
+	1 === 2,
+	true
+)
+
+test(
+	"this test should throw an error",
+	async () => obj.throwsError(),
+  null
+);
 
 runner.run();
 

@@ -1,7 +1,7 @@
 /**
  * @file A modern, flexible JavaScript test runner for the browser.
  * @author Holmes Bryant <https://github.com/HolmesBryant>
- * @version 1.0.0
+ * @version 1.0.1
  * @license MIT
  */
 
@@ -11,6 +11,8 @@
  * with flexible output options (console or a specified DOM element).
  */
 export default class ATestRunner {
+
+  doneMesage = 'All tests completed';
 
   /**
    * The URL of the test file being executed, used for reporting line numbers.
@@ -263,50 +265,50 @@ export default class ATestRunner {
     this.#notifyProgress(0, total);
 
     const output = this.output;
-    // Start all tests and create promises for their results.
-    const pendingResults = this.#queue.map(task => {
+
+    // Map each task to a promise that will process its own result upon completion.
+    const resultProcessingPromises = this.#queue.map(task => {
       let promise;
 
       if (task.type === 'info') {
-        // For info, resolve immediately
+        // Info tasks are instantly resolved.
         promise = Promise.resolve({ type: 'info', message: task.payload.message });
       } else if (task.type === 'test') {
-        // For tests, execute the test and return the promise.
         promise = this.#executeTest(task.payload);
       }
 
-      return promise.then( result => {
+      // Attach a handler that runs AS SOON as this specific promise resolves.
+      return promise.then(result => {
         loaded++;
         this.#notifyProgress(loaded, total);
+
+        if (result.verdict === 'fail' || result.verdict === 'error') {
+          this.#finalVerdict = 'fail';
+        }
+
+        if (result.type === 'info') {
+          if (!this.onlyFailed) {
+            this.#printResult(output, result.message, 'info');
+          }
+        } else if (result.type === 'test') {
+          this.#printResult(
+            output,
+            result.gist,
+            result.verdict,
+            result.resolvedTestResult,
+            result.expect,
+            result.line
+          );
+        }
+        // the result for the final Promise.all
         return result;
-      })
+      });
     });
 
-    // Wait for all tests to complete.
-    const results = await Promise.all(pendingResults);
-
-    // Report the results.
-    for (const result of results) {
-      if (result.verdict === 'fail' || result.verdict === 'error') this.#finalVerdict = 'fail';
-
-      if (result.type === 'info') {
-        if (!this.onlyFailed) {
-          this.#printResult(output, result.message, 'info');
-        }
-      } else if (result.type === 'test') {
-        this.#printResult(
-          output,
-          result.gist,
-          result.verdict,
-          result.resolvedTestResult,
-          result.expect,
-          result.line
-        );
-      }
-    }
+    await Promise.all(resultProcessingPromises);
 
     this.#notifyComplete();
-    this.#printResult(output, 'All tests completed', 'done')
+    this.#printResult(output, this.doneMessage, 'done');
   }
 
   /**
@@ -489,15 +491,15 @@ export default class ATestRunner {
    * @param {number} total The total number of tests.
    */
   #notifyProgress(loaded, total) {
-  if (this.output !== 'console' && this.output instanceof HTMLElement) {
-    const progressEvent = new ProgressEvent('progress', {
-      lengthComputable: true,
-      loaded: loaded,
-      total: total
-    });
+    if (this.output !== 'console' && this.output instanceof HTMLElement) {
+      const progressEvent = new ProgressEvent('progress', {
+        lengthComputable: true,
+        loaded: loaded,
+        total: total
+      });
 
-    this.output.dispatchEvent(progressEvent);
-  }
+      this.output.dispatchEvent(progressEvent);
+    }
   }
 
   /**
