@@ -1,18 +1,16 @@
 /**
  * @file A modern, flexible JavaScript test runner for the browser.
  * @author Holmes Bryant <https://github.com/HolmesBryant>
- * @version 1.0.1
+ * @version 1.0.2
  * @license MIT
  */
 
 /**
- * A class that provides a comprehensive suite for defining, running, and reporting tests.
+ * Provides a comprehensive suite for defining, running, and reporting tests.
  * It operates on a queue-based system, allowing for asynchronous test execution
  * with flexible output options (console or a specified DOM element).
  */
 export default class ATestRunner {
-
-  doneMesage = 'All tests completed';
 
   /**
    * The URL of the test file being executed, used for reporting line numbers.
@@ -256,7 +254,7 @@ export default class ATestRunner {
 
   /**
    * Executes all queued tests and informational messages asynchronously.
-   * Reports progress and final results to the configured output target.
+   * Reports progress and final results to the configured output target in the order they were defined.
    * @returns {Promise<void>} A promise that resolves when all tests have completed and results are printed.
    */
   async run() {
@@ -266,49 +264,52 @@ export default class ATestRunner {
 
     const output = this.output;
 
-    // Map each task to a promise that will process its own result upon completion.
-    const resultProcessingPromises = this.#queue.map(task => {
+    // Create a promise for each task in the queue.
+    const executionPromises = this.#queue.map(task => {
       let promise;
 
       if (task.type === 'info') {
-        // Info tasks are instantly resolved.
         promise = Promise.resolve({ type: 'info', message: task.payload.message });
       } else if (task.type === 'test') {
         promise = this.#executeTest(task.payload);
       }
 
-      // Attach a handler that runs AS SOON as this specific promise resolves.
+      // Attach a handler to update progress as each promise resolves.
+      // This does NOT print the result yet.
       return promise.then(result => {
         loaded++;
         this.#notifyProgress(loaded, total);
-
-        if (result.verdict === 'fail' || result.verdict === 'error') {
-          this.#finalVerdict = 'fail';
-        }
-
-        if (result.type === 'info') {
-          if (!this.onlyFailed) {
-            this.#printResult(output, result.message, 'info');
-          }
-        } else if (result.type === 'test') {
-          this.#printResult(
-            output,
-            result.gist,
-            result.verdict,
-            result.resolvedTestResult,
-            result.expect,
-            result.line
-          );
-        }
-        // the result for the final Promise.all
-        return result;
+        return result; // Pass the result along
       });
     });
 
-    await Promise.all(resultProcessingPromises);
+    // Wait for ALL tests to finish executing.
+    const results = await Promise.all(executionPromises);
+
+    // Iterate over the resolved results and print them sequentially.
+    for (const result of results) {
+      if (result.verdict === 'fail' || result.verdict === 'error') {
+        this.#finalVerdict = 'fail';
+      }
+
+      if (result.type === 'info') {
+        if (!this.onlyFailed) {
+          this.#printResult(output, result.message, 'info');
+        }
+      } else if (result.type === 'test') {
+        this.#printResult(
+          output,
+          result.gist,
+          result.verdict,
+          result.resolvedTestResult,
+          result.expect,
+          result.line
+        );
+      }
+    }
 
     this.#notifyComplete();
-    this.#printResult(output, this.doneMessage, 'done');
+    this.#printResult(output, "", 'done');
   }
 
   /**
@@ -477,11 +478,12 @@ export default class ATestRunner {
    * @private
    */
   #notifyComplete() {
+    const target = (this.output.dispatchEvent) ? this.output : document;
     const completeEvent = new CustomEvent('complete', {
       detail: { verdict: this.#finalVerdict }
     });
 
-    if (this.output.dispatchEvent) this.output.dispatchEvent(completeEvent);
+    target.dispatchEvent(completeEvent);
   }
 
   /**
@@ -491,15 +493,14 @@ export default class ATestRunner {
    * @param {number} total The total number of tests.
    */
   #notifyProgress(loaded, total) {
-    if (this.output !== 'console' && this.output instanceof HTMLElement) {
-      const progressEvent = new ProgressEvent('progress', {
-        lengthComputable: true,
-        loaded: loaded,
-        total: total
-      });
+    const target = (this.output.dispatchEvent) ? this.output : document;
+    const progressEvent = new ProgressEvent('progress', {
+      lengthComputable: true,
+      loaded: loaded,
+      total: total
+    });
 
-      this.output.dispatchEvent(progressEvent);
-    }
+    target.dispatchEvent(progressEvent);
   }
 
   /**

@@ -3,11 +3,18 @@
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Testing testObject</title>
+	<title>Testing ATestRunner</title>
 	<script type="module" src="atestrunner.tests.js"></script>
+	<script>
+		document.addEventListener('progress', (event) => {
+			const percent = (event.loaded / event.total) * 100;
+			document.body.querySelector('progress').value = percent;
+		});
+	</script>
 </head>
 <body>
-	<h1>testobject tests</h1>
+	<h1>ATestRunner tests</h1>
 	<p>Open the developer console to view the results</p>
+	<progress min="0" max="100">foo</progress>
 </body>
 </html>

@@ -12,7 +12,8 @@ Demo: [https://holmesbryant.github.io/ATestRunner/](https://holmesbryant.github.
 
 
 ## Change Log
-v1.0.1: Made it so the ProgressEvent fires after each test is resolved for better test progress reporting.
+v1.0.2: Fixed regression where tests were being printed out of order.
+v1.0.1: Made it so the ProgressEvent fires after each test is resolved for better progress reporting.
 v1.0.0: Initial Commit
 
 

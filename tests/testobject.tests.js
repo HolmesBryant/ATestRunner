@@ -79,7 +79,7 @@ test(
 	"testing insertElem('pre') with wait()",
 	async () => {
 		insertElem('pre');
-		wait(10);
+		await wait(1000);
 		const el = document.body.querySelector('pre');
 		el.remove();
 		return el instanceof HTMLPreElement;
