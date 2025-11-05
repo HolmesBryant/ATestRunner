@@ -11,6 +11,12 @@
  * with flexible output options (console or a specified DOM element).
  */
 export default class ATestRunner {
+  /**
+   * Can be set externally by a test orchestrator like ADevRunner.
+   * If null, the runner will attempt to determine the line number via #getLine().
+   * @type {?number}
+   */
+  currentLine = null;
 
   /**
    * The URL of the test file being executed, used for reporting line numbers.
@@ -47,7 +53,7 @@ export default class ATestRunner {
 
 
   /**
-   * @param {string} metaURl (optonal) Used for accurate line number reporting.
+   * @param {string} metaURl (optional) An absolute URL ie. `import.meta.url`. Used for accurate line number reporting.
    * @example const runner = new Runner(import.meta.url)
    */
   constructor(metaURL) {
@@ -358,7 +364,7 @@ export default class ATestRunner {
    * @returns {Promise<void>}
    */
   test(gist, testFn, expect) {
-    const line = this.metaURL ? this.#getLine() : null;
+    const line = this.currentLine ?? (this.metaURL ? this.#getLine() : null);
     this.#queue.push({
       type: 'test',
       payload: { gist, testFn, expect, line }
@@ -465,8 +471,10 @@ export default class ATestRunner {
       throw Error('');
     } catch (error) {
       if (!error.stack) return null;
+      // Find the first line in the stack that contains the metaURL, which is the call site.
       const result = error.stack.split('\n').find(member => member.includes(this.metaURL));
       if (!result) return null;
+      // Extract the line and column number.
       const start = result.indexOf(this.metaURL) + this.metaURL.length + 1;
       const end = result.lastIndexOf(':');
       return result.substring(start, end);

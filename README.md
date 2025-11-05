@@ -12,8 +12,13 @@ Demo: [https://holmesbryant.github.io/ATestRunner/](https://holmesbryant.github.
 
 
 ## Change Log
+
+v1.0.3: Added property named `currentLine` and modified #getLine to first check this value before trying the error.stack trick. This allows an external test orchestrator to set the line number(s).
+
 v1.0.2: Fixed regression where tests were being printed out of order.
+
 v1.0.1: Made it so the ProgressEvent fires after each test is resolved for better progress reporting.
+
 v1.0.0: Initial Commit
 
 
