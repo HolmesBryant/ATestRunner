@@ -1,71 +1,248 @@
 /**
  * @file A modern, flexible JavaScript test runner for the browser.
  * @author Holmes Bryant <https://github.com/HolmesBryant>
- * @version 1.0.2
+ * @version 2.0.0
  * @license MIT
  */
 
 /**
+ * @abstract
+ * Base class for reporters. Defines the interface for reporting test results.
+ */
+class ATestReporter {
+  report(result) {
+    throw new Error('ATestReporter.report() must be implemented by subclasses.');
+  }
+  groupStart(gist) {
+    throw new Error('ATestReporter.groupStart() must be implemented by subclasses.');
+  }
+  groupEnd() {
+    throw new Error('ATestReporter.groupEnd() must be implemented by subclasses.');
+  }
+  done(finalVerdict) {
+     throw new Error('ATestReporter.done() must be implemented by subclasses.');
+  }
+}
+
+/**
+ * Reports test results to the browser's console.
+ */
+class ConsoleReporter extends ATestReporter {
+  #getStyle(verdict) {
+    switch (verdict) {
+      case 'pass': return 'color:limegreen; font-weight:bold';
+      case 'fail': return 'color:red; font-weight:bold';
+      case 'info': return 'color:SandyBrown; font-weight:bold';
+      case 'GROUP_START': return 'color:darkorange; font-weight:bold';
+      case 'error': return 'color:fuchsia; font-weight:bold;';
+      default: return 'color:dodgerblue; font-weight:bold';
+    }
+  }
+
+  report(result) {
+    const { gist, verdict, result: res, expect, line, message, type } = result;
+
+    if (type === 'info') {
+      console.log(`%cINFO`, this.#getStyle('info'), message);
+      return;
+    }
+
+    const logArgs = [`%c${verdict.toUpperCase()}`, this.#getStyle(verdict), gist];
+    console.groupCollapsed(...logArgs);
+    console.log('Result:', res);
+    console.log('Expected:', expect);
+    if (line) console.log('Line:', line);
+    console.groupEnd();
+  }
+
+  groupStart(gist) {
+    console.group(`%c${gist}`, this.#getStyle('GROUP_START'));
+  }
+
+  groupEnd() {
+    console.groupEnd();
+  }
+
+  done() {
+    console.log(`%cDONE`, this.#getStyle('done'));
+  }
+}
+
+/**
+ * Reports test results by dispatching DOM events.
+ */
+class DomEventReporter extends ATestReporter {
+  #target;
+  #eventName;
+
+  constructor(target, eventName) {
+    super();
+    this.#target = target;
+    this.#eventName = eventName;
+  }
+
+  #dispatchEvent(detail) {
+    const event = new CustomEvent(this.#eventName, {
+      detail,
+      bubbles: true,
+      composed: true
+    });
+    this.#target.dispatchEvent(event);
+  }
+
+  #formatResult(result) {
+    const { gist, verdict, result: res, expect, line, message, type } = result;
+
+    const detail = type === 'info'
+      ? { gist: message, verdict: 'INFO' }
+      : { gist, verdict: verdict.toUpperCase(), result: res, expect, line };
+
+    if (detail.result instanceof Error) {
+      detail.result = detail.result.stack ? detail.result.stack.split("\n") : detail.result.message;
+    }
+    return detail;
+  }
+
+  report(result) {
+    const detail = this.#formatResult(result);
+    this.#dispatchEvent(detail);
+  }
+
+  groupStart(gist) {
+    this.#dispatchEvent({ gist: gist, verdict: 'GROUP_START' });
+  }
+
+  groupEnd() {
+    this.#dispatchEvent({ gist: null, verdict: 'GROUP_END' });
+  }
+
+  done() {
+    // The separate 'complete' event handles the final verdict, so this is a no-op.
+  }
+}
+
+
+/**
  * Provides a comprehensive suite for defining, running, and reporting tests.
  * It operates on a queue-based system, allowing for asynchronous test execution
- * with flexible output options (console or a specified DOM element).
+ * with flexible output options via swappable reporters.
  */
 export default class ATestRunner {
   /**
-   * Can be set externally by a test orchestrator like ADevRunner.
-   * If null, the runner will attempt to determine the line number via #getLine().
-   * @type {?number}
+   * The line number of the currently executing test file statement.
+   * This is intended to be set by an external orchestrator that parses the test file,
+   * allowing for more accurate line reporting when tests are defined dynamically.
+   * If null, the runner attempts to determine the line number automatically.
+   *
+   * @type {number|string|null}
+   * @example
+   * // This is typically set by a file-parsing orchestrator.
+   * // For a file containing `runner.test('my test', () => true, true);` on line 10:
+   * runner.currentLine = 10;
+   * runner.test('my test', () => true, true); // This test will be reported as being on line 10.
    */
   currentLine = null;
 
   /**
-   * The URL of the test file being executed, used for reporting line numbers.
-   * @type {string}
-   */
-  metaURL;
-
-  /**
-   * If true, only failed tests and informational messages will be reported. Passed tests will be suppressed.
+   * If set to `true`, the final report will only include tests that have a 'fail'
+   * or 'error' verdict. Passed and skipped tests will be suppressed from the output.
+   *
    * @type {boolean}
+   * @default false
+   * @example
+   * const runner = new ATestRunner(import.meta.url);
+   * runner.onlyFailed = true; // Configure the runner to only show failing tests.
+   * runner.test('passing test', 1, 1); // This result will not be displayed.
+   * runner.test('failing test', 1, 2); // This result will be displayed.
+   * runner.run();
    */
   onlyFailed = false;
 
   /**
-   * The target for test results. Can be 'console', a CSS selector string ('#id'), or an HTMLElement.
-   * @private
-   * @type {('console'|HTMLElement)}
+   * The default maximum time in milliseconds that a single test is allowed to run
+   * before it is considered a failure. This can be overridden on a per-test basis.
+   *
+   * @type {number}
+   * @default 2000
+   * @example
+   * const runner = new ATestRunner(import.meta.url);
+   * // Set a global timeout of 3 seconds for all tests.
+   * runner.timeout = 3000;
+   *
+   * // This test will now fail if it takes longer than 3000ms.
+   * runner.test('async task', async () => await someLongProcess(), 'expected');
+   * runner.run();
    */
-  #output = 'console';
+  timeout = 2000;
 
   /**
-   * The final verdict of the test suite ('pass' or 'fail').
-   * @private
-   * @type {('pass'|'fail')}
+   * The name of the custom DOM event dispatched for each individual test result
+   * when using the `DomEventReporter`.
+   *
+   * @type {string}
+   * @default 'a-testresult'
+   * @example
+   * const runner = new ATestRunner(import.meta.url);
+   * runner.output = document.body; // Use DOM event reporting.
+   * runner.resultEventName = 'my-custom-test-event';
+   *
+   * document.body.addEventListener('my-custom-test-event', (e) => {
+   *   console.log('Received test result:', e.detail);
+   * });
+   *
+   * runner.run();
    */
+  resultEventName = 'a-testresult';
+
+  /**
+   * The name of the `ProgressEvent` dispatched as the test queue is processed.
+   * This event can be used to build a UI progress bar.
+   *
+   * @type {string}
+   * @default 'a-progress'
+   * @example
+   * document.addEventListener('a-progress', (e) => {
+   *   if (e.lengthComputable) {
+   *     const percentComplete = (e.loaded / e.total) * 100;
+   *     console.log(`Tests are ${percentComplete.toFixed(0)}% complete.`);
+   *   }
+   * });
+   */
+  progressEventName = 'a-progress';
+
+  /**
+   * The name of the custom DOM event dispatched once the entire test suite has
+   * finished running. The event's `detail` object contains the final verdict.
+   *
+   * @type {string}
+   * @default 'a-complete'
+   * @example
+   * document.addEventListener('a-complete', (e) => {
+   *   console.log(`Test suite finished with verdict: ${e.detail.verdict}`);
+   * });
+   */
+  completeEventName = 'a-complete';
+
+  #definitionChain = Promise.resolve();
   #finalVerdict = 'pass';
-
-  /**
-   * A queue of tasks (tests or info messages) to be executed by the run() method.
-   * @private
-   * @type {Array<Object>}
-   */
+  #metaURL;
+  #output = 'console';
   #queue = [];
+  #reporter;
 
-
-  /**
-   * @param {string} metaURl (optional) An absolute URL ie. `import.meta.url`. Used for accurate line number reporting.
-   * @example const runner = new Runner(import.meta.url)
-   */
   constructor(metaURL) {
-    this.metaURL = metaURL;
+    this.#metaURL = metaURL;
+    this.#reporter = new ConsoleReporter(); // Default to console reporting
+    this.group = this.group.bind(this);
     this.info = this.info.bind(this);
+    this.skip = this.skip.bind(this);
     this.test = this.test.bind(this);
     this.when = this.when.bind(this);
     this.profile = this.profile.bind(this);
     this.run = this.run.bind(this);
   }
 
-  // Public
+  // --- Public API Methods ---
 
   /**
    * Benchmarks a function by running it a specified number of times and measuring the total execution time.
@@ -91,92 +268,54 @@ export default class ATestRunner {
 
   /**
    * Performs a deep equality comparison between two values.
-   * Handles primitives, objects, arrays, Dates, RegExps, Maps, Sets, and circular references.
+   * Handles primitives, objects, arrays, Dates, RegExps, Maps, Sets,
+   * ArrayBuffers, TypedArrays, objects with null prototypes, and circular references.
    * @param {*} a The first value to compare.
    * @param {*} b The second value to compare.
    * @returns {boolean} True if the values are deeply equal, false otherwise.
    */
   equal(a, b) {
-    // A Map to store visited pairs of objects to handle circular references.
     const visited = new Map();
-
-    // The internal recursive comparison function.
     function _equal(x, y) {
-      // If the values are strictly equal, they are equal.
       if (x === y) return true;
-
-      // If either value is null or not an object, they are not equal (already checked by ===).
-      if (x === null || typeof x !== 'object' || y === null || typeof y !== 'object') {
-        return false;
-      }
-
-      // If the pair has already been visited, they are part of a cycle and considered equal so far.
-      if (visited.has(x) && visited.get(x) === y) {
-        return true;
-      }
-
-      // Store the pair for circular reference detection.
+      if (x === null || typeof x !== 'object' || y === null || typeof y !== 'object') return false;
+      if (visited.has(x) && visited.get(x) === y) return true;
       visited.set(x, y);
-
-      // Compare Dates by their time value.
-      if (x instanceof Date && y instanceof Date) {
-        return x.getTime() === y.getTime();
+      if (Object.getPrototypeOf(x) !== Object.getPrototypeOf(y)) return false;
+      if (x instanceof Date) return x.getTime() === y.getTime();
+      if (x instanceof RegExp) return x.toString() === y.toString();
+      if (x instanceof ArrayBuffer || ArrayBuffer.isView(x)) {
+          if (x.byteLength !== y.byteLength) return false;
+          const view1 = new Uint8Array(x.buffer, x.byteOffset, x.byteLength);
+          const view2 = new Uint8Array(y.buffer, y.byteOffset, y.byteLength);
+          for (let i = 0; i < x.byteLength; i++) if (view1[i] !== view2[i]) return false;
+          return true;
       }
-
-      // Compare RegExps by their string representation.
-      if (x instanceof RegExp && y instanceof RegExp) {
-        return x.toString() === y.toString();
-      }
-
-      // Ensure constructors are the same.
-      if (x.constructor !== y.constructor) {
-        return false;
-      }
-
-      // Compare Maps by size and key-value pairs.
-      if (x instanceof Map && y instanceof Map) {
+      if (x instanceof Map) {
         if (x.size !== y.size) return false;
-        for (const [key, value] of x.entries()) {
-          if (!y.has(key) || !_equal(value, y.get(key))) {
-            return false;
-          }
+        for (const [key, value] of x) if (!y.has(key) || !_equal(value, y.get(key))) return false;
+        return true;
+      }
+      if (x instanceof Set) {
+        if (x.size !== y.size) return false;
+        const yValues = [...y];
+        for (const value of x) {
+          const index = yValues.findIndex(yValue => _equal(value, yValue));
+          if (index === -1) return false;
+          yValues.splice(index, 1);
         }
         return true;
       }
-
-      // Compare Sets by size and elements.
-      if (x instanceof Set && y instanceof Set) {
-        if (x.size !== y.size) return false;
-        const yValues = [...y.values()];
-        for (const value of x.values()) {
-          if (!yValues.some(yValue => _equal(value, yValue))) {
-            return false;
-          }
-        }
-        return true;
-      }
-
-      // Compare arrays by length and elements.
       if (Array.isArray(x)) {
         if (x.length !== y.length) return false;
-        for (let i = 0; i < x.length; i++) {
-          if (!_equal(x[i], y[i])) return false;
-        }
+        for (let i = 0; i < x.length; i++) if (!_equal(x[i], y[i])) return false;
         return true;
       }
-
-      // Compare plain objects by their own enumerable properties.
       const keysX = Object.keys(x);
       if (keysX.length !== Object.keys(y).length) return false;
-      for (const key of keysX) {
-        if (!Object.prototype.hasOwnProperty.call(y, key) || !_equal(x[key], y[key])) {
-          return false;
-        }
-      }
-
+      for (const key of keysX) if (!Object.prototype.hasOwnProperty.call(y, key) || !_equal(x[key], y[key])) return false;
       return true;
     }
-
     return _equal(a, b);
   }
 
@@ -195,29 +334,80 @@ export default class ATestRunner {
   *genCombos(options = {}) {
     const keys = Object.keys(options);
     const values = Object.values(options);
-
-    function* generate(index, currentCombination) {
+    function *generate(index, currentCombination) {
       if (index === keys.length) {
-        // Create a new object to avoid mutation issues
         yield { ...currentCombination };
         return;
       }
-
       const key = keys[index];
       const value = values[index];
-
       if (Array.isArray(value)) {
         for (const element of value) {
           currentCombination[key] = element;
-          yield* generate(index + 1, currentCombination);
+          yield *generate(index + 1, currentCombination);
         }
       } else {
         currentCombination[key] = value;
-        yield* generate(index + 1, currentCombination);
+        yield *generate(index + 1, currentCombination);
       }
     }
+    yield *generate(0, {});
+  }
 
-    yield* generate(0, {});
+  /**
+   * Queues a group of tests under a common description.
+   * @param {string} gist The gist of the group.
+   * @param {Function} testsCallback A function containing the test definitions for the group.
+   */
+  group(gist, testsCallback) {
+    // Chain the execution of this entire group definition.
+    this.#definitionChain = this.#definitionChain.then(async () => {
+      // Add the start marker to the queue.
+      this.#queue.push({ type: 'group_start', payload: { gist } });
+
+      await testsCallback();
+
+      // Add the end marker to the queue after the callback is fully done.
+      this.#queue.push({ type: 'group_end', payload: {} });
+    });
+  }
+
+  /**
+   * Handles errors that occur during the test *definition* phase (e.g., inside
+   * a try/catch block or an orchestrator). It queues a special failing test
+   * to ensure the setup error is always visible in the final report.
+   *
+   * @param {Error} error The captured error object.
+   * @param {object} [options={}] An optional object for providing additional context.
+   * @param {string} [options.gist='Error during test setup'] A custom description of what failed.
+   * @param {string} [options.code] The raw string of code that was being executed when the error occurred.
+   * @param {number|string} [options.line] The specific line number where the error occurred. If not provided, the runner will attempt to determine it.
+   *
+   * @example
+   * // Usage inside a manual try/catch block
+   * try {
+   *   test("References nonexistent variable", nonExistentVar, "expected");
+   * } catch (error) {
+   *   runner.handleError(error, { gist: 'A variable was not defined' });
+   * }
+   *
+   * @example
+   * // Usage by an orchestrator that has more context
+   * runner.handleError(error, {
+   *   gist: 'Failed to parse test statement',
+   *   code: 'test("bad test", () => a.b.c(), "foo")',
+   *   line: 42
+   * });
+   */
+  handleError(error, options = {}) {
+    const gist = options.gist ?? 'Error during test setup';
+    const code = options.code ?? null;
+    const line = options.line ?? this.currentLine ?? (this.#metaURL ? this.#getLine() : null);
+    if (code) this.info(`Code failed to execute:\n${code}`);
+    this.#queue.push({
+      type: 'test',
+      payload: { gist, testFn: error, expect: null, line: line, verdict: 'error' }
+    });
   }
 
   /**
@@ -239,83 +429,38 @@ export default class ATestRunner {
   async profile(fnName, times, thisArg = this, ...args) {
     let fn = this[fnName];
     if (!fn) {
-      switch(fnName) {
-        case "executeTest":
-          fn = this.#executeTest;
-          break;
-        case "getLine":
-          fn = this.#getLine;
-          break;
-        case "getStyle":
-          fn = this.#getStyle;
-          break;
-        case "printResult":
-          fn = this.#printResult;
-          break;
-      }
+        // Limited support for private methods for simplicity
+        if (fnName === "executeTest") fn = this.#executeTest;
+        else if (fnName === "getLine") fn = this.#getLine;
     }
-
     return this.benchmark(fn, times, thisArg, ...args);
   }
 
   /**
-   * Executes all queued tests and informational messages asynchronously.
-   * Reports progress and final results to the configured output target in the order they were defined.
-   * @returns {Promise<void>} A promise that resolves when all tests have completed and results are printed.
+   * Orchestrates the test run by processing the queue and reporting completion.
    */
   async run() {
-    const total = this.#queue.length;
-    let loaded = 0;
-    this.#notifyProgress(0, total);
+    // Wait for the entire chain of group definitions to complete.
+    await this.#definitionChain;
 
-    const output = this.output;
-
-    // Create a promise for each task in the queue.
-    const executionPromises = this.#queue.map(task => {
-      let promise;
-
-      if (task.type === 'info') {
-        promise = Promise.resolve({ type: 'info', message: task.payload.message });
-      } else if (task.type === 'test') {
-        promise = this.#executeTest(task.payload);
-      }
-
-      // Attach a handler to update progress as each promise resolves.
-      // This does NOT print the result yet.
-      return promise.then(result => {
-        loaded++;
-        this.#notifyProgress(loaded, total);
-        return result; // Pass the result along
-      });
-    });
-
-    // Wait for ALL tests to finish executing.
-    const results = await Promise.all(executionPromises);
-
-    // Iterate over the resolved results and print them sequentially.
-    for (const result of results) {
-      if (result.verdict === 'fail' || result.verdict === 'error') {
-        this.#finalVerdict = 'fail';
-      }
-
-      if (result.type === 'info') {
-        if (!this.onlyFailed) {
-          this.#printResult(output, result.message, 'info');
-        }
-      } else if (result.type === 'test') {
-        this.#printResult(
-          output,
-          result.gist,
-          result.verdict,
-          result.resolvedTestResult,
-          result.expect,
-          result.line
-        );
-      }
-    }
-
+    this.#notifyProgress(0, this.#queue.length);
+    await this.#processQueue();
+    this.#reporter.done(this.#finalVerdict);
     this.#notifyComplete();
-    this.#printResult(output, "", 'done');
+  }
+
+  /**
+   * Skip a test. The signature is the same as test() to make it easy to skip/unskip
+   * @param {string} gist           - A description of the test
+   * @param {*} testFn              - The expression to evaluate. Not used here but we want to keep the same signature as test()
+   * @param {string|booean} expect  - The expected value
+   */
+  skip(gist, testFn, expect) {
+    const line = this.currentLine ?? (this.#metaURL ? this.#getLine() : null);
+    this.#queue.push({
+      type: 'skip',
+      payload: { gist, testFn, expect, line, verdict: 'skip' }
+    });
   }
 
   /**
@@ -334,25 +479,17 @@ export default class ATestRunner {
    */
   spyOn(obj, methodName) {
     const originalMethod = obj[methodName];
-
-    if (typeof originalMethod !== 'function') {
-      throw new Error(`${methodName} is not a function`);
-    }
-
+    if (typeof originalMethod !== 'function') throw new Error(`${methodName} is not a function`);
     const spy = {
       callCount: 0,
       calls: [],
-      restore: () => {
-        obj[methodName] = originalMethod;
-      },
+      restore: () => { obj[methodName] = originalMethod; },
     };
-
     obj[methodName] = function(...args) {
       spy.callCount++;
       spy.calls.push(args);
       return originalMethod.apply(this, args);
     };
-
     return spy;
   }
 
@@ -363,12 +500,25 @@ export default class ATestRunner {
    * @param {*} expect The expected result of the test function.
    * @returns {Promise<void>}
    */
-  test(gist, testFn, expect) {
-    const line = this.currentLine ?? (this.metaURL ? this.#getLine() : null);
-    this.#queue.push({
-      type: 'test',
-      payload: { gist, testFn, expect, line }
-    });
+  test(gist, testFn, expect, options = {}) {
+    const line = this.currentLine ?? (this.#metaURL ? this.#getLine() : null);
+    const payload = { gist, testFn, expect, line, ...options };
+    this.#queue.push({ type: 'test', payload });
+  }
+
+  /**
+   * Checks if a function throws an error when executed with the given arguments.
+   * @param {Function} testFn - The function to test.
+   * @param {...*} args       - The arguments to pass to the test function.
+   * @returns {boolean} Returns `true` if the function throws an error, otherwise `false`.
+   */
+  throws(testFn, ...args) {
+    try {
+      testFn(...args);
+      return false;
+    } catch (error) {
+      return true;
+    }
   }
 
   /**
@@ -388,210 +538,209 @@ export default class ATestRunner {
    * @param {number} [checkIntervalMs=100] The interval between checks in milliseconds.
    * @returns {Promise<*>} A promise that resolves with the first truthy result of the expression, or the final result on timeout.
    * @throws Will re-throw any error that occurs during the evaluation of the expression.
+   *
+   * @example async asyncFunc() { return 'foo' }
+   * @example when( asyncFunc() ) // returns 'foo'
+   * @example when( await asyncFunc() === 'foo' ) // returns true
    */
   async when(expression, timeoutMs = 1000, checkIntervalMs = 100) {
     const startTime = Date.now();
-    let evaluation;
-
-    if (typeof expression === 'function') {
-      // Handles: waitFor(testAsync) or waitFor(() => testAsync() === 'foo')
-      evaluation = async () => expression();
-    } else if (expression instanceof Promise) {
-      // Handles: waitFor(testAsync())
-      evaluation = async () => expression;
-    } else {
-      // Handles: waitFor('foo' == 'foo') or other simple values
-      evaluation = async () => expression;
-    }
-
+    let evaluation = (typeof expression === 'function') ? async () => expression()
+                   : (expression instanceof Promise)    ? async () => expression
+                   : async () => expression;
     while (true) {
-      if (Date.now() - startTime >= timeoutMs) {
-        // if timeout is reached, return the latest evaluation
-        return await evaluation();
-      }
-
+      if (Date.now() - startTime >= timeoutMs) return await evaluation();
       try {
         const result = await evaluation();
-        // resolve it If the result is truthy
         if (result) return result;
       } catch (error) {
-        // If the evaluation itself throws an error, we should fail fast.
         throw error;
       }
-
       await this.wait(checkIntervalMs);
     }
   }
 
-  // Private
+  // --- Private Methods ---
 
   /**
-   * Executes a single test payload, handling async functions and errors.
+   * Chains a task-queuing function to ensure all test definitions
+   * are processed in the order they are called.
    * @private
-   * @param {object} payload The test payload from the queue.
-   * @returns {Promise<object>} A promise that resolves with the structured test result.
+   * @param {Function} queuingFunction The function that adds tasks to the #queue.
+   */
+  #enqueue(queuingFunction) {
+    this.#definitionChain = this.#definitionChain.then(queuingFunction);
+  }
+
+  /**
+   * Prepares a single task for execution, returning a promise with its result.
+   * @private
+   */
+  #executeTask(task) {
+    return (task.type === 'info')
+      ? Promise.resolve({ type: 'info', message: task.payload.message })
+      : this.#executeTest(task.payload);
+  }
+
+  /**
+   * Executes a single test payload and determines its outcome.
+   * @private
    */
   async #executeTest(payload) {
-    const { gist, testFn, expect, line } = payload;
+    const { gist, testFn, expect, line, verdict: predefinedVerdict, timeout } = payload;
+    const testTimeout = timeout ?? this.timeout;
+
     try {
-      const testResult = (typeof testFn === 'function') ? testFn() : testFn;
-      const resolvedTestResult = await testResult;
-      const result = this.equal(resolvedTestResult, expect);
-      const verdict = result ? 'pass' : 'fail';
-      return { type: 'test', gist, verdict, resolvedTestResult, expect, line };
+      if (predefinedVerdict) {
+        const result = predefinedVerdict === 'error' ? testFn : 'Not executed';
+        return { type: 'test', gist, verdict: predefinedVerdict, result, expect, line };
+      }
+
+      // The timeout promise
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`Test timed out after ${testTimeout}ms`)), testTimeout)
+      );
+
+      // The actual test execution logic, wrapped in a promise
+      const executionPromise = (async () => {
+        const testResult = (typeof testFn === 'function') ? testFn() : testFn;
+        if (testResult instanceof Error) {
+          return { type: 'test', gist, verdict: 'error', result: testResult, expect, line };
+        }
+        const resolvedTestResult = await testResult;
+        const verdict = this.equal(resolvedTestResult, expect) ? 'pass' : 'fail';
+        return { type: 'test', gist, verdict, result: resolvedTestResult, expect, line };
+      })();
+
+      // Race the execution against the timeout
+      return await Promise.race([executionPromise, timeoutPromise]);
+
     } catch (error) {
-      // If the test function itself throws an error, report it as an error.
-      return { type: 'test', gist, verdict: 'error', resolvedTestResult: error, expect, line };
+      // catch timeouts or other unexpected errors
+      return { type: 'test', gist, verdict: 'error', result: error, expect, line };
     }
   }
 
   /**
-   * Gets the CSS style string for a given verdict.
+   * Determines the line number where a test was defined.
    * @private
-   * @param {string} verdict The test verdict ('pass', 'fail', etc.).
-   * @returns {string} The CSS string for console styling.
-   */
-  #getStyle(verdict) {
-    switch (verdict) {
-      case 'pass': return 'color:limegreen; font-weight:bold';
-      case 'fail': return 'color:red; font-weight:bold';
-      case 'info': return 'color:darkorange; font-weight:bold';
-      case 'error': return 'color:fuchsia; font-weight:bold;';
-      default: return 'color:dodgerblue; font-weight:bold';
-    }
-  }
-
-  /**
-   * Determines the line number where a test was defined by creating and parsing an error stack.
-   * @private
-   * @returns {string|null} The line number as a string, or null if it cannot be determined.
    */
   #getLine() {
     try {
       throw Error('');
     } catch (error) {
       if (!error.stack) return null;
-      // Find the first line in the stack that contains the metaURL, which is the call site.
-      const result = error.stack.split('\n').find(member => member.includes(this.metaURL));
+      const result = error.stack.split('\n').find(member => member.includes(this.#metaURL));
       if (!result) return null;
-      // Extract the line and column number.
-      const start = result.indexOf(this.metaURL) + this.metaURL.length + 1;
+      const start = result.indexOf(this.#metaURL) + this.#metaURL.length + 1;
       const end = result.lastIndexOf(':');
       return result.substring(start, end);
     }
   }
 
   /**
-   * Dispatches a 'complete' event to the output target if it is a DOM element.
+   * Iterates through the task queue and manages the execution flow.
    * @private
    */
+  async #processQueue() {
+    const promiseGroups = [[]];
+    let inGroup = false;
+
+    for (const [index, task] of this.#queue.entries()) {
+      switch (task.type) {
+        case 'group_start':
+          this.#reporter.groupStart(task.payload.gist);
+          inGroup = true;
+          break;
+
+        case 'group_end':
+          const groupPromises = promiseGroups[promiseGroups.length - 1];
+          await this.#processGroupResults(groupPromises);
+          groupPromises.length = 0;
+          this.#reporter.groupEnd();
+          inGroup = false;
+          break;
+
+        default: // test, info, skip
+          const promise = this.#executeTask(task);
+          if (inGroup) {
+            promiseGroups[promiseGroups.length - 1].push(promise);
+          } else {
+            const result = await promise;
+            this.#report(result);
+          }
+          break;
+      }
+      this.#notifyProgress(index + 1, this.#queue.length);
+    }
+  }
+
+  /**
+   * Awaits all promises in a group and reports their results sequentially.
+   * @private
+   */
+  async #processGroupResults(promises) {
+    const results = await Promise.all(promises);
+    for (const result of results) {
+      this.#report(result);
+    }
+  }
+
+  /**
+   * Updates the final verdict, filters the result, and delegates to the reporter.
+   * @private
+   */
+  #report(result) {
+    if (result.verdict === 'fail' || result.verdict === 'error') {
+      this.#finalVerdict = 'fail';
+    }
+    if (this.onlyFailed && result.verdict === 'pass') {
+      return;
+    }
+    this.#reporter.report(result);
+  }
+
+  // --- Event Notification ---
+
   #notifyComplete() {
-    const target = (this.output.dispatchEvent) ? this.output : document;
-    const completeEvent = new CustomEvent('complete', {
+    const target = (this.#output.dispatchEvent) ? this.#output : document;
+    const completeEvent = new CustomEvent(this.completeEventName, {
       detail: { verdict: this.#finalVerdict }
     });
-
     target.dispatchEvent(completeEvent);
   }
 
-  /**
-   * Dispatches a 'progress' event to the output target if it is a DOM element.
-   * @private
-   * @param {number} loaded The number of tests completed.
-   * @param {number} total The total number of tests.
-   */
   #notifyProgress(loaded, total) {
-    const target = (this.output.dispatchEvent) ? this.output : document;
-    const progressEvent = new ProgressEvent('progress', {
-      lengthComputable: true,
-      loaded: loaded,
-      total: total
+    const target = (this.#output.dispatchEvent) ? this.#output : document;
+    const progressEvent = new ProgressEvent(this.progressEventName, {
+      lengthComputable: true, loaded: loaded, total: total
     });
-
     target.dispatchEvent(progressEvent);
   }
 
-  /**
-   * Prints a single test result to the configured output target.
-   * @private
-   */
-  #printResult(output, gist, verdict, result, expect, line) {
+  // --- Getters / Setters ---
 
-    if (this.onlyFailed && verdict === 'pass') return;
-    const style = this.#getStyle(verdict);
-    const logArgs = [`%c${verdict.toUpperCase()}`, style, gist];
-    if (verdict === 'fail' || verdict === 'pass' || verdict === 'error') {
-      if (output === 'console') {
-        console.groupCollapsed(...logArgs);
-          console.log('Result:', result);
-          console.log('Expected:', expect);
-          if (line) console.log('Line:', line);
-        console.groupEnd();
-      } else {
-        this.#sendResult(gist, verdict, result, expect, line)
-      }
-    } else {
-      if (output === 'console') {
-        console.log(...logArgs);
-      } else {
-        this.#sendResult(gist, verdict, result, expect, line);
-      }
-    }
-  }
+  get output() { return this.#output; }
 
-  /**
-   * Sends a structured test result to a DOM element by creating and appending an `<output>` element.
-   * @private
-   */
-  #sendResult(gist, verdict, result, expect, line) {
-    let target;
-    const obj = {gist, verdict, result, expect, line}
-
-    if (result instanceof Error) {
-      if (result.stack) {
-        const stack = result.stack.split("\n");
-        stack.unshift(result.message);
-        obj.result = stack;
-      } else {
-        obj.result = result.message;
-      }
-    }
-
-    const elem = document.createElement('output');
-    elem.value = JSON.stringify(obj, null, 2);
-    this.output.append(elem);
-  }
-
-  // GETTERS / SETTERS
-
-  /**
-   * Gets the current output target.
-   * @returns {('console'|HTMLElement)}
-   */
-  get output() { return this.#output }
-
-  /**
-   * Sets the output target for test results.
-   * @param {('console'|string|HTMLElement)} value - Can be 'console', a CSS selector string, or an HTMLElement.
-   * @throws {Error} If the provided CSS selector does not match any element in the DOM.
-   */
   set output(value) {
-    let target;
-
     if (value === 'console') {
+      this.#reporter = new ConsoleReporter();
       this.#output = 'console';
-    } else if (value instanceof HTMLElement) {
-      this.#output = value;
-    } else if (target = document.querySelector(value)) {
+      return;
+    }
+    let target;
+    if (value instanceof HTMLElement) {
+      target = value;
+    } else if (typeof value === 'string') {
+      target = document.querySelector(value);
+    }
+    if (target) {
+      this.#reporter = new DomEventReporter(target, this.resultEventName);
       this.#output = target;
     } else {
-      throw new Error(`Cannot find output target: ${value} `);
+      throw new Error(`Cannot find output target: ${value}`);
     }
   }
 
-  /**
-   * Gets the final verdict of the test suite.
-   * @returns {('pass'|'fail')}
-   */
-  get finalVerdict() { return this.#finalVerdict }
+  get finalVerdict() { return this.#finalVerdict; }
 }

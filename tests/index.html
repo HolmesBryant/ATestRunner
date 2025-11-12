@@ -4,9 +4,9 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>Testing ATestRunner</title>
-	<script type="module" src="atestrunner.tests.js"></script>
+	<script type="module" src="/tests/example.test.js"></script>
 	<script>
-		document.addEventListener('progress', (event) => {
+		document.addEventListener('a-progress', (event) => {
 			const percent = (event.loaded / event.total) * 100;
 			document.body.querySelector('progress').value = percent;
 		});

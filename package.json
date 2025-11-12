@@ -1,6 +1,6 @@
 {
   "name": "a-test-runner",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "A test runner for ECMAScript and web component modules.",
   "type": "module",
   "main": "ATestRunner.js",
