@@ -400,10 +400,18 @@ export default class ATestRunner {
    * });
    */
   handleError(error, options = {}) {
-    const gist = options.gist ?? 'Error during test setup';
+    let gist;
     const code = options.code ?? null;
     const line = options.line ?? this.currentLine ?? (this.#metaURL ? this.#getLine() : null);
-    if (code) this.info(`Code failed to execute:\n${code}`);
+
+    if (options.gist) {
+      gist = options.gist;
+    } else if (code) {
+      gist = `Failed to execute:\n${code}`
+    } else {
+      gist = 'Error during setup';
+    }
+
     this.#queue.push({
       type: 'test',
       payload: { gist, testFn: error, expect: null, line: line, verdict: 'error' }

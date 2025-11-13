@@ -1,12 +1,13 @@
 {
-  "name": "a-test-runner",
+  "name": "ATestRunner",
   "version": "2.0.0",
   "description": "A test runner for ECMAScript and web component modules.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HolmesBryant/ATestRunner.git"
+  },
   "type": "module",
   "main": "ATestRunner.js",
-  "engines": {
-    "node": ">=20.0.0"
-  },
   "scripts": {
     "dev": "browser-sync start --server --files \"src/*.*\"",
     "test": "node --test tests/node.tests.js",
