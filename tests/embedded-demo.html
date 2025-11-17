@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATestRunner Embedded Demo (Modular)</title>
+  <style>
+    body { font-family: sans-serif; display: flex; gap: 40px; padding: 20px; }
+    .component, .test-runner { border: 1px solid #ccc; border-radius: 8px; padding: 20px; width: 45%; }
+    h2 { margin-top: 0; }
+    .counter-display { font-size: 2em; margin: 20px 0; font-weight: bold; }
+    button { padding: 8px 12px; margin-right: 5px; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <!-- The Component Being Tested (unchanged) -->
+  <div class="component">
+    <h2>Interactive Counter Component</h2>
+    <div id="counter-app">
+      <div class="counter-display">0</div>
+      <button id="increment-btn">+</button>
+      <button id="decrement-btn">-</button>
+      <button id="reset-btn">Reset</button>
+    </div>
+  </div>
+
+  <!-- The Test Runner UI -->
+  <div class="test-runner">
+    <h2>ATestRunner Results</h2>
+    <p>The tests for the counter component run automatically on page load.</p>
+    <test-results id="test-output"></test-results>
+  </div>
+
+
+<script type="module" src="/tests/test-results.js"></script>
+
+<script type="module">
+  import ATestRunner from '/src/ATestRunner.js';
+
+  class Counter {
+    constructor() {
+      this.count = 0;
+      this.display = document.querySelector('.counter-display');
+      document.getElementById('increment-btn').addEventListener('click', () => this.increment());
+      document.getElementById('decrement-btn').addEventListener('click', () => this.decrement());
+      document.getElementById('reset-btn').addEventListener('click', () => this.reset());
+    }
+    _updateUI() { this.display.textContent = this.count; }
+    getCount() { return this.count; }
+    increment() { this.count++; this._updateUI(); }
+    decrement() { this.count--; this._updateUI(); }
+    reset() { this.count = 0; this._updateUI(); }
+  }
+
+  // =================================================================
+  //  Define and run the test suite
+  // =================================================================
+  async function runDemoTests() {
+    const runner = new ATestRunner(import.meta.url);
+    runner.output = '#test-output'; // Target the custom element
+
+    const counter = new Counter();
+
+    runner.group('Counter Initialization', () => {
+      runner.test('should start with a count of 0', counter.getCount(), 0);
+    });
+
+    runner.group('Failing Group Example', () => {
+      counter.reset();
+      runner.test('increment() should increase count to 1', () => {
+        counter.increment();
+        return counter.getCount();
+      }, 1);
+      runner.test('this test will fail intentionally', counter.getCount(), 100);
+    });
+
+    runner.run();
+  }
+
+  runDemoTests();
+
+</script>
+</body>
+</html>

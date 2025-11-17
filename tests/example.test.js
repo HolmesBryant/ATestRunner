@@ -1,5 +1,6 @@
 /**
  * An example test suite for ATestRunner
+ * @file example.test.js
  * @url https://github.com/HolmesBryant/ATestRunner
  */
 

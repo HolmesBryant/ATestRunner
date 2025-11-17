@@ -4,7 +4,7 @@
 
 A modern, flexible JavaScript test runner for the browser.
 
-ATestRunner is a comprehensive suite for defining, running, and reporting tests. It operates on a queue-based system, allowing for asynchronous test execution with flexible output options to the console or a specified DOM element.
+ATestRunner is a comprehensive suite for defining, running, and reporting tests in the browser. It operates on a queue-based system, allowing for asynchronous test execution with flexible output options to the console or a specified DOM element.
 
 ATestRunner works with ECMAScript **modules**. That means the code you want to test must be **[exported](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/export)**.
 
@@ -30,6 +30,10 @@ Demo: [https://holmesbryant.github.io/ATestRunner/](https://holmesbryant.github.
 * **Zero Dependencies:** A lightweight, standalone library with no external dependencies.
 
 ## Change Log
+
+v2.0.1
+
+- spyOn: added some chainable mocking methods, which allow you to replace a function's implementation.
 
 v2.0.0
 
@@ -320,29 +324,114 @@ Allows you to skip a test and report it as "skipped". The signature is exacly th
 
 #### spyOn(obj, methodName)
 
-Creates a spy on a method of an object.
+A utility for testing the interactions between different parts of your code. It allows you to "spy" on an object's method to see if it was called, or to completely "mock" its behavior for the duration of a test.
 
-* `obj` (Object): The object containing the method to spy on.
-* `methodName` (String): The name of the method to spy on.
-* Returns a spy object with `callCount`, `calls`, and a `restore` function.
+##### The importance of .restore()
+
+spyOn() modifies the original object. It is crucial to call spy.restore() after each test that uses a spy. Forgetting to restore a spy will cause its mocked behavior to leak into other tests, leading to unpredictable results.
+
+A good pattern is to use a `try...finally` block to ensure cleanup happens even if a test fails:
 
 ```javascript
-	const spy = spyOn(console, 'log');
-	console.log('foo');
+	let spy;
+	try {
+	  spy = runner.spyOn(console, 'log').returns(undefined);
+	  // ... your test logic here ...
+	} finally {
+	  spy.restore();
+	}
+```
 
-	test(
-		"console.log was called 1 time",
-		spy.callCount === 1,
-		true
-	);
+##### Basic Usage
 
-	test(
-		"console.log was called with arg 'foo'",
-		spy.calls[0] === 'foo',
-		true
-	);
+At its simplest, spyOn can track how many times a method is called and which arguments were used. It does this without changing the method's original behavior.
 
-	spy.restore();
+```javascript
+	// A simple object with a method
+	const calculator = {
+	  add: (a, b) => a + b
+	};
+
+	// Create a spy on the 'add' method
+	const addSpy = runner.spyOn(calculator, 'add');
+
+	// Call the method as usual
+	calculator.add(2, 3);
+	calculator.add(5, 7);
+
+	// Check the spy's properties
+	console.log(addSpy.callCount); // Outputs: 2
+	console.log(addSpy.calls);     // Outputs: [ [2, 3], [5, 7] ]
+
+	// IMPORTANT: Restore the original method after the test
+	addSpy.restore();
+```
+
+##### Mocking Behavior
+
+`spyOn` provides chainable mocking methods, which allow you to completely replace a function's implementation for a test.
+
+**.returns(value)** Forces the spied method to return a specific value.
+
+```javascript
+	const user = { getRole: () => 'guest' };
+	const roleSpy = runner.spyOn(user, 'getRole').returns('admin');
+	const role = user.getRole(); // role is now 'admin'
+
+	roleSpy.restore();
+```
+
+**.runs(customFunction)** Replaces the spied method with a completely new function.
+
+```javascript
+	const math = {
+	  calculate: (a, b) => a + b
+	};
+
+	// Let's make it subtract instead
+	const calcSpy = runner.spyOn(math, 'calculate').runs((a, b) => a - b);
+
+	const result = math.calculate(10, 5); // result is 5
+	console.log(result); // Outputs: 5
+
+	calcSpy.restore();
+```
+
+**.resolves(value)** Used for async operations that return a Promise. It forces the method to return a resolved promise with the given value. This is useful for mocking successful API calls.
+
+```javascript
+	// Mock a successful fetch request
+	const mockResponse = new Response({ "user": "Ada" });
+	const fetchSpy = runner.spyOn(window, 'fetch').resolves(mockResponse);
+
+	runner.test('should fetch user data', async () => {
+	  const response = await window.fetch('/api/user');
+	  const data = await response.json();
+	  return data.user;
+	}, 'Ada');
+
+	// Don't forget to restore!
+	fetchSpy.restore();
+```
+
+**.rejects(error)** The opposite of .resolves(). It forces the method to return a rejected promise with a given error. This is useful for testing error-handling logic.
+
+```javascript
+	// Mock a failed fetch request
+	const networkError = new TypeError('Failed to fetch');
+	const fetchSpy = runner.spyOn(window, 'fetch').rejects(networkError);
+
+	runner.test('should handle fetch errors', async () => {
+	  try {
+	    await window.fetch('/api/data');
+	    return false; // The test fails if it doesn't throw
+	  } catch (e) {
+	    // Check if the caught error is the one we mocked
+	    return e.message;
+	  }
+	}, 'Failed to fetch');
+
+	fetchSpy.restore();
 ```
 
 #### throws(testFn, ...args)
