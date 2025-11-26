@@ -31,6 +31,15 @@ Demo: [https://holmesbryant.github.io/ATestRunner/](https://holmesbryant.github.
 
 ## Change Log
 
+v3
+
+- Fixed issue where progress events were being emitted before all tests had been registered.
+
+- Changed event names to:
+	- completeEventName = "atestrunner:complete"
+	- progressEventName = "atestrunner:progress"
+	- resultEventName = "atestrunner:result"
+
 v2.0.1
 
 - spyOn: added some chainable mocking methods, which allow you to replace a function's implementation.

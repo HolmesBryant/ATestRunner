@@ -1,0 +1,1 @@
+Format results to differentiate between string values and other values.

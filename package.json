@@ -9,7 +9,7 @@
   "type": "module",
   "main": "ATestRunner.js",
   "scripts": {
-    "dev": "browser-sync start --server --files \"src/*.*\"",
+    "dev": "browser-sync start --server --files \"src/*.*, index.html\"",
     "test": "node --test tests/node.tests.js",
     "build": "rollup -c"
   },
