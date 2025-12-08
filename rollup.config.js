@@ -18,7 +18,9 @@ export default {
         join_vars: true,
         keep_fnames: false
       },
-        mangle: true
+      mangle: {
+        keep_classnames: true
+      }
     }),
   ],
 };
