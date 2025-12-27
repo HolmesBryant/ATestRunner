@@ -29,52 +29,6 @@ Demo: [https://holmesbryant.github.io/ATestRunner/](https://holmesbryant.github.
 
 * **Zero Dependencies:** A lightweight, standalone library with no external dependencies.
 
-## Change Log
-
-v3
-
-- Fixed issue where progress events were being emitted before all tests had been registered.
-
-- Changed event names to:
-	- completeEventName = "atestrunner:complete"
-	- progressEventName = "atestrunner:progress"
-	- resultEventName = "atestrunner:result"
-
-v2.0.1
-
-- spyOn: added some chainable mocking methods, which allow you to replace a function's implementation.
-
-v2.0.0
-
-- Refactored the code to ensure each method has a single responsibility.
-
-- Changed behavior of `onlyFailed` flag to also print "info" messages.
-
-- Added `skip(gist, testFn, expect)` which reports the test as skipped and does not evaluate testFn. This has the same signature as test() to make it easy to skip/unskip tests.
-
-- Added `group("gist", () => { // tests })` which allows you to group sets of tests under a common topic.
-
-- Added `handleError(error, options = { gist=null, strTest=null, testLine=null })`. This is meant mainly as a utility for orchestrators.
-
-v1.1.0
-
-- Added `throws(fn, ...args)` method.
-Usage: test('throws error', throws(fn, arg), true)
-
-v1.0.3:
-
-- Added property named `currentLine` and modified #getLine to first check this value before trying the error.stack trick. This allows an external test orchestrator to set the line number(s).
-
-v1.0.2:
-
-- Fixed regression where tests were being printed out of order.
-
-v1.0.1:
-
-- Made it so the ProgressEvent fires after each test is resolved for better progress reporting.
-
-v1.0.0: Initial Commit
-
 ## Installation
 
 Download the script and include it in your project.
@@ -494,3 +448,53 @@ Waits for an expression, function, or promise to become "truthy".
 ## Running the Included Tests
 
 The `atestrunner.tests.js` file in the `tests` folder contains a comprehensive test suite for the `ATestRunner` itself. Check it out to get a better idea of how to write your own tests.
+
+## Change Log
+
+v3.0.2: Fixed error when using equal();
+
+v3.0.1: Added log(gist, stringOrObject) which prints a label (gist) with whatever you want to log.
+
+v3.0.0
+
+- Fixed issue where progress events were being emitted before all tests had been registered.
+
+- Changed event names to:
+	- completeEventName = "atestrunner:complete"
+	- progressEventName = "atestrunner:progress"
+	- resultEventName = "atestrunner:result"
+
+v2.0.1
+
+- spyOn: added some chainable mocking methods, which allow you to replace a function's implementation.
+
+v2.0.0
+
+- Refactored the code to ensure each method has a single responsibility.
+
+- Changed behavior of `onlyFailed` flag to also print "info" messages.
+
+- Added `skip(gist, testFn, expect)` which reports the test as skipped and does not evaluate testFn. This has the same signature as test() to make it easy to skip/unskip tests.
+
+- Added `group("gist", () => { // tests })` which allows you to group sets of tests under a common topic.
+
+- Added `handleError(error, options = { gist=null, strTest=null, testLine=null })`. This is meant mainly as a utility for orchestrators.
+
+v1.1.0
+
+- Added `throws(fn, ...args)` method.
+Usage: test('throws error', throws(fn, arg), true)
+
+v1.0.3:
+
+- Added property named `currentLine` and modified #getLine to first check this value before trying the error.stack trick. This allows an external test orchestrator to set the line number(s).
+
+v1.0.2:
+
+- Fixed regression where tests were being printed out of order.
+
+v1.0.1:
+
+- Made it so the ProgressEvent fires after each test is resolved for better progress reporting.
+
+v1.0.0: Initial Commit

@@ -589,39 +589,41 @@
 					<hr>
 
 					<a-code highlight="javascript">
-						/**
-						* A function that simulates a heavy, synchronous calculation.
-						* @param {number} iterations - The higher the number, the longer it takes.
-						* @returns {number} - The result of the calculation.
-						*/
-						function heavyCalculation(iterations) {
-							let result = 0;
-							for (let i = 0; i < iterations; i++) {
-						  	// Perform some arbitrary math
-						  	result += Math.sqrt(i) * Math.sin(i);
+						<textarea>
+							/**
+							* A function that simulates a heavy, synchronous calculation.
+							* @param {number} iterations - The higher the number, the longer it takes.
+							* @returns {number} - The result of the calculation.
+							*/
+							function heavyCalculation(iterations) {
+								let result = 0;
+								for (let i = 0; i < iterations; i++) {
+							  	// Perform some arbitrary math
+							  	result += Math.sqrt(i) * Math.sin(i);
+								}
+								return result;
 							}
-							return result;
-						}
 
-						// Now, we'll create a test that benchmarks this function and passes only if the execution time is less than 2000 milliseconds.
+							// Now, we'll create a test that benchmarks this function and passes only if the execution time is less than 2000 milliseconds.
 
-						test(
-							"heavyCalculation() should complete in less than 2 seconds",
-							async () => {
-							  const iterations = 20_000_000;
-							  const timeLimitMs = 2000;
+							test(
+								"heavyCalculation() should complete in less than 2 seconds",
+								async () => {
+								  const iterations = 20_000_000;
+								  const timeLimitMs = 2000;
 
-							  // 1. Benchmark the heavy function, running it just 1 time.
-							  //    - heavyCalculation is the function to test.
-							  //    - 1 is the number of times to run it.
-							  //    - null is the 'this' context.
-							  //    - iterations is the argument to pass to heavyCalculation.
+								  // 1. Benchmark the heavy function, running it just 1 time.
+								  //    - heavyCalculation is the function to test.
+								  //    - 1 is the number of times to run it.
+								  //    - null is the 'this' context.
+								  //    - iterations is the argument to pass to heavyCalculation.
 
-							  const executionTime = await runner.benchmark(heavyCalculation, 1, null, iterations);
-							  return executionTime < timeLimitMs;
-							},
-							true
-						);
+								  const executionTime = await runner.benchmark(heavyCalculation, 1, null, iterations);
+								  return executionTime < timeLimitMs;
+								},
+								true
+							);
+						</textarea>
 					</a-code>
 				</details>
 			</div>

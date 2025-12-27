@@ -1,7 +1,7 @@
 /**
  * @file ATestRunner.js
  * @author Holmes Bryant <https://github.com/HolmesBryant>
- * @version 3.0.0
+ * @version 3.0.2
  * @license MIT
  */
 
@@ -47,9 +47,10 @@ export default class ATestRunner {
     this.#testFileURL = testFileURL;
     // Default to console reporter. It will be replaced if a DOM target is set.
     this.#reporter = new ConsoleReporter();
-
+    this.equal = this.equal.bind(this);
     this.group = this.group.bind(this);
     this.info = this.info.bind(this);
+    this.log = this.log.bind(this);
     this.skip = this.skip.bind(this);
     this.test = this.test.bind(this);
     this.when = this.when.bind(this);
@@ -151,6 +152,15 @@ export default class ATestRunner {
    */
   info(message) {
     this.#testQueue.push({ type: "info", payload: { message } });
+  }
+
+  /**
+   * Logs a custom message with a specific verdict label.
+   * @param {string} verdict - The label for the log (e.g., 'model', 'api', 'debug').
+   * @param {*} message - The object or value to log.
+   */
+  log(verdict, message) {
+    this.#testQueue.push({ type: "custom_log", payload: { verdict, message } });
   }
 
   /**
@@ -304,6 +314,13 @@ export default class ATestRunner {
   #processItem(item) {
     if (item.type === "info") {
       return Promise.resolve({ type: "info", message: item.payload.message });
+    }
+    if (item.type === "custom_log") {
+      return Promise.resolve({
+        type: "custom_log",
+        verdict: item.payload.verdict,
+        result: item.payload.message
+      });
     }
     return this.#executeTest(item.payload);
   }
@@ -686,6 +703,14 @@ class ConsoleReporter extends ATestReporter {
    */
   report(result) {
     const { gist, verdict, result: res, expect, line, message, type } = result;
+
+    if (type === "custom_log") {
+      console.groupCollapsed(verdict);
+      console.log(res);
+      console.groupEnd();
+      return;
+    }
+
     if (type === "info") {
       console.log("%cINFO", this.#getStyle("info"), message);
       return;
@@ -776,6 +801,35 @@ class EventReporter extends ATestReporter {
    * @returns {object} The formatted detail object for the event.
    */
   #formatDetail(result) {
+    if (result.type === "custom_log") {
+      let content = result.result;
+
+      // Handle HTML Elements: Extract attributes and value
+      if (content instanceof Element) {
+        const attributes = {};
+        for (const attr of content.attributes) {
+          attributes[attr.name] = attr.value;
+        }
+
+        const elementData = {
+          tagName: content.tagName.toLowerCase(),
+          attributes: attributes
+        };
+
+        // Capture 'value' if it exists (e.g., inputs), but not inherited props
+        if ('value' in content) {
+          elementData.value = content.value;
+        }
+        content = elementData;
+      }
+      // Handle Objects/Arrays: specific requirement to show *only* own properties
+      else if (typeof content === 'object' && content !== null) {
+        content = Array.isArray(content) ? [...content] : { ...content };
+      }
+
+      return { gist: null, verdict: result.verdict, result: content };
+    }
+
     const { gist, verdict, result: res, expect, line, message, type } = result;
     const detail = (type === "info") ?
       { gist: message, verdict: "INFO" } :

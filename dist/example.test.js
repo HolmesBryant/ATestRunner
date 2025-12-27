@@ -4,7 +4,7 @@
  */
 
 // import app from './app.js';
-import ATestRunner from '../src/ATestrunner.js';
+import ATestRunner from './ATestrunner.min.js';
 
 
 /**

@@ -1,6 +1,6 @@
 {
   "name": "ATestRunner",
-  "version": "2.0.0",
+  "version": "3.0.2",
   "description": "A test runner for ECMAScript and web component modules.",
   "repository": {
     "type": "git",
@@ -9,7 +9,7 @@
   "type": "module",
   "main": "ATestRunner.js",
   "scripts": {
-    "dev": "browser-sync start --server --files \"src/*.*, index.html\"",
+    "dev": "vite",
     "test": "node --test tests/node.tests.js",
     "build": "rollup -c"
   },
@@ -18,6 +18,7 @@
   "devDependencies": {
     "@rollup/plugin-terser": "^0.4.4",
     "rollup": "^4.30.1",
-    "browser-sync": "^3.0.4"
+    "vite": "^6.4.1",
+    "vite-plugin-import-css-sheet": "^1.0.10"
   }
 }
