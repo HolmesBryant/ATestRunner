@@ -14,7 +14,7 @@
 </head>
 <body>
 
-  <!-- The Component Being Tested (unchanged) -->
+  <!-- The Component Being Tested -->
   <div class="component">
     <h2>Interactive Counter Component</h2>
     <div id="counter-app">
@@ -53,12 +53,9 @@
     reset() { this.count = 0; this._updateUI(); }
   }
 
-  // =================================================================
-  //  Define and run the test suite
-  // =================================================================
   async function runDemoTests() {
     const runner = new ATestRunner(import.meta.url);
-    runner.output = '#test-output'; // Target the custom element
+    runner.output = '#test-output';
 
     const counter = new Counter();
 

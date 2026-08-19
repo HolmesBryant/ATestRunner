@@ -62,7 +62,7 @@ class TestResults extends HTMLElement {
   _attachEventListeners() {
     // Listen for events dispatched on this element
     this.addEventListener('a-testresult', e => {
-      e.stopPropagation(); // Stop the event from bubbling further
+      e.stopPropagation();
       const { gist, verdict, result, expect, groupVerdict } = e.detail;
       const resultEl = document.createElement('div');
       resultEl.className = `result ${verdict}`;

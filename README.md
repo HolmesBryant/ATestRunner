@@ -247,7 +247,7 @@ Handles errors that occur during the test **definition** phase. Mostly useful fo
 
 * error: The captured error object.
 * options={}: An optional object for providing additional context.
-* options.gist='Error during test setup': A custom description of what failed.
+* options.gist='some string': A custom description of what failed.
 * options.code: The raw string of code that was being executed when the error occurred.
 * options.line: The specific line number where the error occurred. If not provided, the runner will attempt to determine it.
 
