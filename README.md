@@ -1,10 +1,8 @@
 # ATestRunner
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://mit-license.org/)
+A modern, flexible JavaScript test runner for modules and custom elements.
 
-A modern, flexible JavaScript test runner for the browser.
-
-ATestRunner is a comprehensive suite for defining, running, and reporting tests in the browser. It operates on a queue-based system, allowing for asynchronous test execution with flexible output options to the console or a specified DOM element.
+ATestRunner is a comprehensive suite for defining, running, and reporting tests. It operates on a queue-based system, allowing for asynchronous test execution with flexible output options to the console or a specified DOM element.
 
 ATestRunner works with ECMAScript **modules**. That means the code you want to test must be **[exported](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/export)**.
 
@@ -12,6 +10,8 @@ Demo: [https://holmesbryant.github.io/ATestRunner/](https://holmesbryant.github.
 
 
 ## Features
+
+* **Works in Node environment** ATestRunner relies only on standard Javascript and universal runtimes and the test results are printed (by default) to the console. This means you can use ATestrunner to test your Node app.
 
 * **Asynchronous Test Execution:** Runs tests asynchronously, making it suitable for testing modern JavaScript features like Promises and async/await.
 
@@ -41,7 +41,7 @@ To use ATestRunner, write a test suite and import it into an html file.
 <!-- tests.html -->
 <head>
   ...
-  <script type="module" src="my-tests.js"></script>
+  <script type="module" src="test-suite.js"></script>
 </head>
 <body>
 	<p>Open the developer console to view results</p>
@@ -49,11 +49,29 @@ To use ATestRunner, write a test suite and import it into an html file.
 ```
 
 ```javascript
-// my-tests.js
-import app from '../src/app.js';
-import ATestRunner from './ATestrunner.min.js';
+// test-suite.js
+import app from './path/to/app.js';
+import ATestRunner from './path/to/ATestrunner.min.js';
 const runner = new ATestRunner(import.meta.url)
-const {equal, info, spyOn, test, wait, when} = runner;
+
+/* If you don't define these constants,
+you must preface each command with runner.
+(eg. runner.test(...)) */
+const {
+	benchmark,
+	equal,
+	genCombos,
+	group,
+	info,
+	log,
+	skip,
+	spyOn,
+	test,
+	throws,
+	wait,
+	when
+} = runner;
+
 
 info("Testing My App");
 test("App should work", app.works(), true);
@@ -63,15 +81,98 @@ runner.run();
 
 **Why pass `import.meta.url` ?**
 
-Passing import.meta.url to the ATestRunner constructor provides the test runner with the full path to your test file. ATestRunner uses this path to parse error stack traces, allowing it to report the precise line number on which a failing test was defined. This makes debugging significantly faster and more efficient. While this argument is optional, omitting it will result in test reports that do not include line numbers. For very large test suites, omitting this argument may speed up the process.
+Passing import.meta.url to the ATestRunner constructor provides the test runner with the full path to your test file. ATestRunner uses this path to parse stack traces, allowing it to report the precise line number on which a test was defined. This makes it easier to debug your tests. While this argument is optional, omitting it will result in test reports that do not include line numbers. For very large test suites, omitting this argument may speed up the process.
+
+---
+
+## Testing with Node
+
+```javascript
+// test.mjs
+import ATestRunner from './ATestRunner.js';
+const runner = new ATestRunner(import.meta.url);
+// Write tests
+await runner.run();
+```
+
+Run test.mjs directly in your terminal.
+`node test.mjs`
+
+---
 
 ### Output to an HTML Element
 
-By default, results are logged to the console. To send output to an HTML element, set the output property to a CSS selector or a reference to an instance of HTMLElement.
+By default, results are logged to the console. To send output to an HTML element, set the output property to a CSS selector or HTMLElement and set up the event listeners.
 
-		runner.output = '#test-results';
+Or check out [test-results](https://github.com/HolmesBryant/test-results) for a drop-in solution.
 
-----
+```javascript
+// tests.js
+runner.output = '#results';
+```
+
+```html
+<!-- tests.html -->
+<head>
+	....
+	<script type="module" src="tests.js"></script>
+
+	<script type="module">
+		const progressElem = document.getElementById('progress');
+		const resultsContainer = document.getElementById('results');
+		const ul = document.createElement('ul');
+		const li = document.createElement('li');
+		let group, group_ul;
+
+		resultsContainer.addEventListener('a-testresult', event => {
+			switch (event.detail.verdict) {
+			case 'GROUP_START':
+				group = ul.cloneNode();
+				group_ul = ul.cloneNode();
+				const label_li = li.cloneNode();
+				label_li.insertAdjacentHTML('afterbegin', `<h3>${event.detail.gist}</h3>`);
+				label_li.append(group_ul);
+				group.append(label_li);
+				resultsContainer.append(group);
+				break;
+			case 'GROUP_END':
+				group = null;
+				group_ul = null;
+				break;
+			default:
+				const output = JSON.stringify(event.detail, null, 2);
+				const result_li = li.cloneNode();
+				result_li.append(output);
+
+				if (group) {
+					group_ul.append(result_li);
+				} else {
+					resultsContainer.append(result_li);
+				}
+				break;
+			}
+		});
+
+		resultsContainer.addEventListener('a-progress', event => {
+			const prog = (event.loaded / event.total) * 100;
+			progressElem.value = prog;
+		});
+
+		resultsContainer.addEventListener('a-complete', event => {
+			document.getElementById('verdict').textContent = event.detail.verdict.toUpperCase();
+		});
+	</script>
+</head>
+<body>
+	<h1>Basic ATestrunner DOM Output</h1>
+
+	<progress id="progress" max="100" value="0"></progress>
+	<h2>Verdict: <span id="verdict">processing ...</span></h2>
+	<pre id="results"></pre>
+</body>
+```
+
+---
 
 ## Public Properties
 
@@ -80,12 +181,10 @@ By default, results are logged to the console. To send output to an HTML element
 The line number of the currently executing test file statement. This is intended to be set by an external orchestrator that parses the test file, allowing for more accurate line reporting when tests are defined dynamically. If null, the runner attempts to determine the line number automatically.
 
 ```javascript
-		// This is typically set by a file-parsing orchestrator.
-		// For a file containing `runner.test('my test', () => true, true);`on line 10:
-		runner.currentLine = 10;
+runner.currentLine = 10;
 
-		// This test will be reported as being on line 10.
-		runner.test('my test', () => true, true);
+// This test will be reported as being on line 10.
+runner.test('my test', true, true);
 ```
 
 ### onlyFailed = false;
@@ -93,123 +192,188 @@ The line number of the currently executing test file statement. This is intended
 If set to `true`, the report will only include tests that have a 'fail' or 'error' verdict. Passed and skipped tests will be suppressed from the output.
 
 ```javascript
-		const runner = new ATestRunner(import.meta.url);
-		// Configure the runner to only show failing tests.
-		runner.onlyFailed = true;
+const runner = new ATestRunner(import.meta.url);
+// Only show failing tests.
+runner.onlyFailed = true;
 
-		// This result will not be displayed.
-		runner.test('passing test', 1, 1);
+// This result will not be displayed.
+runner.test('passing test', 1, 1);
 
-		// This result will be displayed.
-		runner.test('failing test', 1, 2);
+// This result will be displayed.
+runner.test('failing test', 1, 2);
 
-		runner.run();
+runner.run();
 ```
 
 ### timeout = 2000;
 
-The default maximum time in milliseconds that a single test is allowed to run before it is considered a failure. This can be overridden on a per-test basis.
+The maximum duration (in milliseconds) an asynchronous test is permitted to run before timing out and failing.
+
+**Note on Synchronous Code:** Timeouts only apply to asynchronous operations. Because JavaScript is single-threaded, blocking synchronous code freezes the event loop, preventing timeout timers from firing until the synchronous call stack completely clears.
 
 ```javascript
-		const runner = new ATestRunner(import.meta.url);
-		// Set a global timeout of 3 seconds for all tests.
-		runner.timeout = 3000;
+const runner = new ATestRunner(import.meta.url);
 
-		// This test will now fail if it takes longer than 3000ms.
-		runner.test('async task', async () => await someLongProcess(), 'expected');
+// Set default timeout to 3000ms for all tests.
+runner.timeout = 3000;
 
-		runner.run();
+// This test will fail if it takes longer than 3000ms.
+test('async task using global timeout', async () => {
+  return await fetchData();
+}, 'expected data');
 ```
+
+#### Per-Test Override
+
+To set a custom timeout for an individual test, pass an options object containing timeout as the fourth argument to test(). This will override the global default without affecting other tests:
+
+```javascript
+/* This test will fail if it exceeds 1000ms,
+regardless of the global timeout setting. */
+test(
+  'fast network request',
+  async () => await fetchFastData(),
+  'expected data',
+  { timeout: 1000 }
+);
+
+// This test uses the default 3000ms timeout
+test(
+  'normal async task',
+  async () => await standardTask(),
+  'expected data'
+);
+```
+
 ### resultEventName = 'a-testresult';
 
 The name of the custom DOM event dispatched for each individual test result when using the `DomEventReporter`
 
 ```javascript
-		document.body.addEventListener('my-custom-test-event', (e) => {
-		 console.log('Received test result:', e.detail);
-		});
+document.body.addEventListener('my-custom-test-result', (e) => {
+ console.log('Received test result:', e.detail);
+});
 
-		const runner = new ATestRunner(import.meta.url);
+const runner = new ATestRunner(import.meta.url);
 
-		// Use DOM event reporting.
-		runner.output = document.body;
+// Use DOM event reporting.
+runner.output = document.body;
 
-		runner.resultEventName = 'my-custom-test-event';
-		runner.run();
+runner.resultEventName = 'my-custom-test-result';
+runner.run();
 ```
+
 ### progressEventName = 'a-progress';
 
 The name of the `ProgressEvent` dispatched as the test queue is processed. This event can be used to build a UI progress bar.
 
 ```javascript
-		document.addEventListener('a-progress', (e) => {
-		 if (e.lengthComputable) {
-		   const percentComplete = (e.loaded / e.total) * 100;
-		   console.log(`Tests are ${percentComplete.toFixed(0)}% complete.`);
-		  }
-		});
+document.addEventListener('a-progress', (e) => {
+ if (e.lengthComputable) {
+   const percentComplete = (e.loaded / e.total) * 100;
+   console.log(`Tests are ${percentComplete.toFixed(0)}% complete.`);
+  }
+});
 ```
+
 ### completeEventName = 'a-complete';
 
 The name of the custom DOM event dispatched once the entire test suite has finished running. The event's `detail` object contains the final verdict.
 
 ```javascript
-		document.addEventListener('a-complete', (e) => {
-    	console.log(`Test suite finished with verdict: ${e.detail.verdict}`);
-    });
+document.addEventListener('a-complete', (e) => {
+	console.log(`Test suite finished with verdict: ${e.detail.verdict}`);
+});
 ```
 ----
 
 ## Test API
 
-#### test(gist, testFn, expect)
+### test(gist, testFn, expect, options = {})
 
 The test() method is the core of the runner. It queues a test for execution.
 
-* `gist` (String): A brief description of the test's purpose.
+* **gist** _(string)_: A brief description of the test's purpose.
 
-* `testFn` (Function|any): The test function to execute, or an expression / Promise to be evaluated.
+* **testFn** _(function|any)_: The test function to execute, or an expression / Promise to be evaluated.
 
-* `expect` (any): The expected result of the test function.
+* **expect** _(any)_: The expected result of the test function.
+
+* **options** _(object, optional)_: Additional configuration settings for the test:
+	* **timeout** _(number)_: Overrides the global runner.timeout for this specific test (in milliseconds). Only affects asynchronous tests.
+	* **line** _(string|number)_: Manually sets the reported line number. Useful when writing custom helper functions or generator wrappers where automatic line detection would otherwise point to the wrapper rather than the test call site.
+	* **verdict** _(string)_: Forces a pre-determined verdict (such as 'skip' or 'error') and bypasses test execution entirely.
 
 ```javascript
-	test("foo should be foo", 'foo' === 'foo', true)
-	test("testFn() should return true", () => testFn(), true)
-````
+// Basic synchronous test with an expression
+test("foo should be foo", 'foo' === 'foo', true);
 
-#### async benchmark(fn, times = 1, thisArg = null, ...args)
+// Synchronous test wrapped in a function
+test("testFn() should return true", () => testFn(), 'expected value');
+
+// Asynchronous test with a custom 500ms timeout
+test(
+  "async operation completes quickly",
+  async () => await fetchStatus(),
+  'expected value',
+  { timeout: 500 }
+);
+
+// Manual line number override (e.g. from inside a helper function)
+test(
+	"dynamically generated test",
+	computeValue(),
+	42,
+	{ line: 120 }
+);
+
+// Conditional test skip using the verdict option
+test(
+	"feature only run in secure contexts",
+	() => runCryptoTest(),
+	true,
+	{verdict: window.isSecureContext ? undefined : "skip"}
+);
+```
+---
+
+### async benchmark(fn, times = 1, thisArg = null, ...args)
 
 Benchmarks a function by running it a specified number of times and measuring the total execution time.
 
-*   `fn` (Function): The function to benchmark.
-*   `times` (Number): The number of times to run the function.
-*   `thisArg`: The 'this' context for the function.
-*   `...args`: Arguments to pass to the function.
-*   Returns a Promise that resolves with the total time taken in milliseconds.
+* **fn** _(Function)_: The function to benchmark.
+* **times** _(Number)_: The number of times to run the function.
+* **thisArg**: The 'this' context for the function.
+* **...args**: Arguments to pass to the function.
+* **Returns** a Promise that resolves with the total time taken in milliseconds.
 
 ```javascript
-	function heavyFunc(arg1, arg2) { ... }
+function heavyFunc(arg1, arg2) { ... }
 
-	test(
-		"heavyFunc() completes in under 2 seconds",
- 		async () => await benchmark(heavyFunc, 1, null, 'foo', 'bar') < 2000,
- 		true
-	);
+test(
+	"heavyFunc() completes in under 2 seconds",
+	async () => await benchmark(heavyFunc, 1, null, 'foo', 'bar') < 2000,
+	true
+);
 ```
 
-#### equal(a, b)
+---
+
+### equal(a, b)
 
 Performs a deep equality comparison between two values.
 
-* `a` (any): The first value to compare.
-* `b` (any): The second value to compare.
+* **a** _(any)_: The first value to compare.
+* **b** _(any)_: The second value to compare.
 * Returns `boolean` `true` if the values are deeply equal, otherwise `false`.
 
 ```javascript
-	test( "arrays should be equal", equal([1, 2], [1,2]), true)
-````
+test( "arrays should be equal", equal([1, 2], [1,2]), true)
+```
 
-#### genCombos(options = {})
+---
+
+### genCombos(options = {})
 
 A generator function that yields all possible combinations of properties from an options object.
 
@@ -217,15 +381,24 @@ A generator function that yields all possible combinations of properties from an
 * Yields an object representing one unique combination of the provided options.
 
 ```javascript
-	const options = { a: [1, 2], b: 'c' };
+const options = { a: [1, 2], b: 'c' };
 
-	for (const combo of genCombos(options)) {
-		// First iteration: combo is { a: 1, b: 'c' }
-		// Second iteration: combo is { a: 2, b: 'c' }
-	}
+for (const combo of genCombos(options)) {
+	// First iteration: combo is { a: 1, b: 'c' }
+	// Second iteration: combo is { a: 2, b: 'c' }
+
+	// Dynamically create a test for each combination
+	test(
+		`Combination with a=${combo.a} should have b='c'`,
+		combo.b,
+		'c'
+	);
+}
 ```
 
-#### group(gist, callback)
+---
+
+### group(gist, callback)
 
 Queues a group of tests under a common description.
 
@@ -234,12 +407,14 @@ Queues a group of tests under a common description.
 * callback: A function containing test definitions for the group.
 
 ```javascript
-	group("Group Description", () => {
-		info("a message");
-		test("foo should be a string", typeof 'foo', 'string');
-		pass("don't run this yet", foo(), true);
-	});
+group("Group Description", () => {
+	info("a message");
+	test("foo should be a string", typeof 'foo', 'string');
+	skip("skip this test", foo(), true);
+});
 ```
+
+---
 
 ### handleError(error, options = {})
 
@@ -247,157 +422,196 @@ Handles errors that occur during the test **definition** phase. Mostly useful fo
 
 * error: The captured error object.
 * options={}: An optional object for providing additional context.
-* options.gist='some string': A custom description of what failed.
-* options.code: The raw string of code that was being executed when the error occurred.
-* options.line: The specific line number where the error occurred. If not provided, the runner will attempt to determine it.
+	* options.gist='some string': A custom description of what failed.
+	* options.code: The raw string of code that was being executed when the error occurred.
+	* options.line: The specific line number where the error occurred. If not provided, the runner will attempt to determine it.
 
 ```javascript
-	// Usage inside a manual try/catch block
-	try {
-	  test("This test would have thrown an Error", nonExistentVar, "expected");
-	} catch (error) {
-	  runner.handleError(error, { gist: 'A variable was not defined' });
-	}
+// Usage inside a manual try/catch block
+try {
+  test("This test would have thrown an Error", nonExistentVar, "expected");
+} catch (error) {
+  runner.handleError(error, { gist: 'A variable was not defined' });
+}
 
-	@example
-	// Usage by an orchestrator that has more context
-	runner.handleError(error, {
-	  gist: 'Failed to parse test statement',
-	  code: 'test("bad test", () => a.b.c(), "foo")',
-	  line: 42
-	});
+// Usage by an orchestrator that has more context
+runner.handleError(error, {
+  gist: 'Failed to parse test statement',
+  code: 'test("bad test", () => a.b.c(), "foo")',
+  line: 42
+});
 ```
 
-#### info(message)
+---
+
+### info(message)
 
 Queues an informational message to be displayed in the test results.
 
-* `message` (String): The message to display.
+* **message** _(String)_: The message to display.
 
 `info("this is an informational message")`
 
+---
 
-#### skip(gist, testFn, expect)
+### log(label, message)
+
+Logs a custom message or object with a specific label.
+
+* label {string}: The label for the log (e.g., 'state', 'debug', 'snapshot').
+* message {any}: The object, value or string to log.
+
+`log('snapshot', app.someObject)`
+
+---
+
+### skip(gist, testFn, expect)
 
 Allows you to skip a test and report it as "skipped". The signature is exacly the same as test().
 
 ```javacript
-	skip('This test will be skipped', () => someFunc(), expectedValue);
+skip('This test will be skipped', someFunc(), expectedValue);
 ```
 
-#### spyOn(obj, methodName)
+---
+
+### spyOn(obj, methodName)
 
 A utility for testing the interactions between different parts of your code. It allows you to "spy" on an object's method to see if it was called, or to completely "mock" its behavior for the duration of a test.
 
-##### The importance of .restore()
+**The importance of .restore()**
 
 spyOn() modifies the original object. It is crucial to call spy.restore() after each test that uses a spy. Forgetting to restore a spy will cause its mocked behavior to leak into other tests, leading to unpredictable results.
+
+
+```javascript
+group("Testing spyOn()", () => {
+	const spy = spyOn(console, 'debug');
+	console.debug('called when testing spyOn()', 'foo');
+
+	test(
+		"console.debug was called 1 time",
+		spy.callCount,
+		1
+	);
+
+	test(
+		"console.debug was called with arg 'foo'",
+		spy.calls[0][1],
+		'foo'
+	);
+
+	spy.restore();
+});
+```
 
 A good pattern is to use a `try...finally` block to ensure cleanup happens even if a test fails:
 
 ```javascript
-	let spy;
-	try {
-	  spy = runner.spyOn(console, 'log').returns(undefined);
-	  // ... your test logic here ...
-	} finally {
-	  spy.restore();
-	}
+let spy;
+try {
+  spy = runner.spyOn(console, 'log').returns(undefined);
+  console.log('foo');
+} finally {
+  spy.restore();
+}
 ```
 
-##### Basic Usage
+#### Basic Usage
 
 At its simplest, spyOn can track how many times a method is called and which arguments were used. It does this without changing the method's original behavior.
 
 ```javascript
-	// A simple object with a method
-	const calculator = {
-	  add: (a, b) => a + b
-	};
+// A simple object with a method
+const calculator = {
+  add: (a, b) => a + b
+};
 
-	// Create a spy on the 'add' method
-	const addSpy = runner.spyOn(calculator, 'add');
+// Create a spy on the 'add' method
+const addSpy = runner.spyOn(calculator, 'add');
 
-	// Call the method as usual
-	calculator.add(2, 3);
-	calculator.add(5, 7);
+// Call the method as usual
+calculator.add(2, 3);
+calculator.add(5, 7);
 
-	// Check the spy's properties
-	console.log(addSpy.callCount); // Outputs: 2
-	console.log(addSpy.calls);     // Outputs: [ [2, 3], [5, 7] ]
+// Check the spy's properties
+console.log(addSpy.callCount); // Outputs: 2
+console.log(addSpy.calls);     // Outputs: [ [2, 3], [5, 7] ]
 
-	// IMPORTANT: Restore the original method after the test
-	addSpy.restore();
+// IMPORTANT: Restore the original method after the test
+addSpy.restore();
 ```
 
-##### Mocking Behavior
+#### Mocking Behavior
 
 `spyOn` provides chainable mocking methods, which allow you to completely replace a function's implementation for a test.
 
 **.returns(value)** Forces the spied method to return a specific value.
 
 ```javascript
-	const user = { getRole: () => 'guest' };
-	const roleSpy = runner.spyOn(user, 'getRole').returns('admin');
-	const role = user.getRole(); // role is now 'admin'
+const user = { getRole: () => 'guest' };
+const roleSpy = runner.spyOn(user, 'getRole').returns('admin');
+const role = user.getRole(); // role is now 'admin'
 
-	roleSpy.restore();
+roleSpy.restore();
 ```
 
 **.runs(customFunction)** Replaces the spied method with a completely new function.
 
 ```javascript
-	const math = {
-	  calculate: (a, b) => a + b
-	};
+const math = {
+  calculate: (a, b) => a + b
+};
 
-	// Let's make it subtract instead
-	const calcSpy = runner.spyOn(math, 'calculate').runs((a, b) => a - b);
+// Let's make it subtract instead
+const calcSpy = runner.spyOn(math, 'calculate').runs((a, b) => a - b);
 
-	const result = math.calculate(10, 5); // result is 5
-	console.log(result); // Outputs: 5
+const result = math.calculate(10, 5); // result is 5
+console.log(result); // Outputs: 5
 
-	calcSpy.restore();
+calcSpy.restore();
 ```
 
 **.resolves(value)** Used for async operations that return a Promise. It forces the method to return a resolved promise with the given value. This is useful for mocking successful API calls.
 
 ```javascript
-	// Mock a successful fetch request
-	const mockResponse = new Response({ "user": "Ada" });
-	const fetchSpy = runner.spyOn(window, 'fetch').resolves(mockResponse);
+// Mock a successful fetch request
+const mockResponse = new Response({ "user": "Ada" });
+const fetchSpy = runner.spyOn(window, 'fetch').resolves(mockResponse);
 
-	runner.test('should fetch user data', async () => {
-	  const response = await window.fetch('/api/user');
-	  const data = await response.json();
-	  return data.user;
-	}, 'Ada');
+runner.test('should fetch user data', async () => {
+  const response = await window.fetch('/api/user');
+  const data = await response.json();
+  return data.user;
+}, 'Ada');
 
-	// Don't forget to restore!
-	fetchSpy.restore();
+// Don't forget to restore!
+fetchSpy.restore();
 ```
 
 **.rejects(error)** The opposite of .resolves(). It forces the method to return a rejected promise with a given error. This is useful for testing error-handling logic.
 
 ```javascript
-	// Mock a failed fetch request
-	const networkError = new TypeError('Failed to fetch');
-	const fetchSpy = runner.spyOn(window, 'fetch').rejects(networkError);
+// Mock a failed fetch request
+const networkError = new TypeError('Failed to fetch');
+const fetchSpy = runner.spyOn(window, 'fetch').rejects(networkError);
 
-	runner.test('should handle fetch errors', async () => {
-	  try {
-	    await window.fetch('/api/data');
-	    return false; // The test fails if it doesn't throw
-	  } catch (e) {
-	    // Check if the caught error is the one we mocked
-	    return e.message;
-	  }
-	}, 'Failed to fetch');
+runner.test('should handle fetch errors', async () => {
+  try {
+    await window.fetch('/api/data');
+    return false; // The test fails if it doesn't throw
+  } catch (e) {
+    // Check if the caught error is the one we mocked
+    return e.message;
+  }
+}, 'Failed to fetch');
 
-	fetchSpy.restore();
+fetchSpy.restore();
 ```
 
-#### throws(testFn, ...args)
+---
+
+### throws(testFn, ...args)
 
 Checks if a function throws an error when executed with the given arguments.
 
@@ -411,25 +625,29 @@ Checks if a function throws an error when executed with the given arguments.
 	test("does not throw an error", throws( someFunc, 'foo'), false )
 ````
 
-#### async wait(ms)
+---
+
+### async wait(ms)
 
 Returns a promise that resolves after a specified number of milliseconds.
 
 * `ms` (Number): The number of milliseconds to wait.
 
 ```javascript
-	test(
-		"waiting a few ticks",
-		async () => {
-			document.body.append(document.createElement('div'));
-			await wait(10);
-			return document.body.querySelector('div') !== null;
-		},
-		true
-	);
+test(
+	"waiting a few ticks",
+	async () => {
+		document.body.append(document.createElement('div'));
+		await wait(10);
+		return document.body.querySelector('div') !== null;
+	},
+	true
+);
 ````
 
-#### async when(expression, timeoutMs = 1000, checkIntervalMs = 100)
+---
+
+### async when(expression, timeoutMs = 1000, checkIntervalMs = 100)
 
 Waits for an expression, function, or promise to become "truthy".
 
@@ -439,9 +657,16 @@ Waits for an expression, function, or promise to become "truthy".
 * Returns a Promise that resolves with the first truthy result of the expression, or the last evaluated result on timeout.
 
 ```javascript
-	function async asyncFunc() { return 'foo' }
-	test( when( asyncFunc() ), 'foo' )
-  test( when( await asyncFunc() === 'foo' ), true )
+function async asyncFunc() {
+	return new Promise(
+		resolve => setTimeout(
+			() => resolve('foo'),
+			1000
+		)
+	);
+}
+test( when( asyncFunc() ), 'foo' )
+test( when( await asyncFunc() === 'foo' ), true )
 ```
 ----
 
@@ -451,50 +676,44 @@ The `atestrunner.tests.js` file in the `tests` folder contains a comprehensive t
 
 ## Change Log
 
-v3.0.2: Fixed error when using equal();
+- v3.2
+	- Fixed formatting when running in Node.
 
-v3.0.1: Added log(gist, stringOrObject) which prints a label (gist) with whatever you want to log.
+- v3.1
+	- Changed Dev Dependencies
 
-v3.0.0
+- v3.0.2: Fixed error when using equal();
 
-- Fixed issue where progress events were being emitted before all tests had been registered.
+- v3.0.1: Added log(gist, stringOrObject) which prints a label (gist) with whatever you want to log.
 
-- Changed event names to:
-	- completeEventName = "atestrunner:complete"
-	- progressEventName = "atestrunner:progress"
-	- resultEventName = "atestrunner:result"
+- v3.0.0
+	- Fixed issue where progress events were being emitted before all tests had been registered.
 
-v2.0.1
+	- Changed event names to:
+		- completeEventName = "atestrunner:complete"
+		- progressEventName = "atestrunner:progress"
+		- resultEventName = "atestrunner:result"
 
-- spyOn: added some chainable mocking methods, which allow you to replace a function's implementation.
+- v2.0.1
+	- spyOn: added some chainable mocking methods, which allow you to replace a function's implementation.
 
-v2.0.0
+- v2.0.0
+	- Refactored the code to ensure each method has a single responsibility.
+	- Changed behavior of `onlyFailed` flag to also print "info" messages.
+	- Added `skip(gist, testFn, expect)` which reports the test as skipped and does not evaluate testFn. This has the same signature as test() to make it easy to skip/unskip tests.
+	- Added `group("gist", () => { // tests })` which allows you to group sets of tests under a common topic.
+	- Added `handleError(error, options = { gist=null, strTest=null, testLine=null })`. This is meant mainly as a utility for orchestrators.
 
-- Refactored the code to ensure each method has a single responsibility.
+- v1.1.0
+	- Added `throws(fn, ...args)` method. Usage: test('throws error', throws(fn, arg), true)
 
-- Changed behavior of `onlyFailed` flag to also print "info" messages.
+- v1.0.3:
+	- Added property named `currentLine` and modified #getLine to first check this value before trying the error.stack trick. This allows an external test orchestrator to set the line number(s).
 
-- Added `skip(gist, testFn, expect)` which reports the test as skipped and does not evaluate testFn. This has the same signature as test() to make it easy to skip/unskip tests.
+- v1.0.2:
+	- Fixed regression where tests were being printed out of order.
 
-- Added `group("gist", () => { // tests })` which allows you to group sets of tests under a common topic.
+- v1.0.1:
+	- Made it so the ProgressEvent fires after each test is resolved for better progress reporting.
 
-- Added `handleError(error, options = { gist=null, strTest=null, testLine=null })`. This is meant mainly as a utility for orchestrators.
-
-v1.1.0
-
-- Added `throws(fn, ...args)` method.
-Usage: test('throws error', throws(fn, arg), true)
-
-v1.0.3:
-
-- Added property named `currentLine` and modified #getLine to first check this value before trying the error.stack trick. This allows an external test orchestrator to set the line number(s).
-
-v1.0.2:
-
-- Fixed regression where tests were being printed out of order.
-
-v1.0.1:
-
-- Made it so the ProgressEvent fires after each test is resolved for better progress reporting.
-
-v1.0.0: Initial Commit
+- v1.0.0: Initial Commit

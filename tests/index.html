@@ -4,17 +4,10 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>Testing ATestRunner</title>
-	<script type="module" src="/tests/example.test.js"></script>
-	<script>
-		document.addEventListener('a-progress', (event) => {
-			const percent = (event.loaded / event.total) * 100;
-			document.body.querySelector('progress').value = percent;
-		});
-	</script>
+	<script type="module" src="/tests/atestrunner.tests.js"></script>
 </head>
 <body>
-	<h1>ATestRunner tests</h1>
+	<h1>Testing ATestRunner with Console</h1>
 	<p>Open the developer console to view the results</p>
-	<progress min="0" max="100">foo</progress>
 </body>
 </html>

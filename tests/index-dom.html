@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Testing ATestrunner : DOM</title>
+	<script type="module" src="atestrunner.dom.tests.js"></script>
+
+	<script type="module">
+		const progressElem = document.getElementById('progress');
+		const resultsContainer = document.getElementById('results');
+		const ul = document.createElement('ul');
+		const li = document.createElement('li');
+		let group, group_ul;
+
+		resultsContainer.addEventListener('a-testresult', event => {
+			switch (event.detail.verdict) {
+			case 'GROUP_START':
+				group = ul.cloneNode();
+				group_ul = ul.cloneNode();
+				const label_li = li.cloneNode();
+				label_li.insertAdjacentHTML('afterbegin', `<h3>${event.detail.gist}</h3>`);
+				label_li.append(group_ul);
+				group.append(label_li);
+				resultsContainer.append(group);
+				break;
+			case 'GROUP_END':
+				group = null;
+				group_ul = null;
+				break;
+			default:
+				const output = JSON.stringify(event.detail, null, 2);
+				const result_li = li.cloneNode();
+				result_li.append(output);
+
+				if (group) {
+					group_ul.append(result_li);
+				} else {
+					resultsContainer.append(result_li);
+				}
+				break;
+			}
+		});
+
+		resultsContainer.addEventListener('a-progress', event => {
+			const prog = (event.loaded / event.total) * 100;
+			progressElem.value = prog;
+		});
+
+		resultsContainer.addEventListener('a-complete', event => {
+			document.getElementById('verdict').textContent = event.detail.verdict.toUpperCase();
+		});
+	</script>
+
+	<link rel="stylesheet" href="../extra/styles.css">
+
+	<style>
+		progress { width: 100%; }
+	</style>
+</head>
+<body>
+	<h1>Basic ATestrunner DOM Output</h1>
+
+	<progress id="progress" max="100" value="0">foo</progress>
+	<h2>Verdict: <span id="verdict">processing ...</span></h2>
+	<pre id="results"></pre>
+</body>
+</html>

@@ -1,0 +1,112 @@
+/* @version 2 */
+a-markdown {
+	--blockquote-border: silver;
+	--checkbox-background: white;
+	--code-background: gainsboro;
+  --text-color: black;
+  --block-pad: .5rem;
+  --link-color: dodgerblue;
+  --list-indent: 1.5rem;
+  --block-tab-size: 2;
+}
+
+
+@media (prefers-color-scheme: dark) {
+	a-markdown {
+		--blockquote-border: linen;
+		--code-background: rgb(20,20,20);
+		--checkbox-background: rgb(20,20,20);
+		--text-color: white;
+	}
+}
+
+/* container that holds all the converted html */
+a-markdown::part(html) {
+	padding: 1rem;
+}
+
+/* headers */
+a-markdown::part(h1) { margin: 0 0 2rem 0 }
+a-markdown::part(h2) { margin: 1.75rem 1rem }
+a-markdown::part(h3) { margin: 1.5rem 1.25rem }
+a-markdown::part(h4) { margin: 1.25rem 1.5rem }
+a-markdown::part(h5) { margin: 1rem 2rem }
+a-markdown::part(h6) { margin: 0 2.25rem }
+
+/* bold */
+a-markdown::part(strong) {}
+
+/* italic */
+a-markdown::part(em){}
+
+/* lists */
+a-markdown::part(ol) {}
+a-markdown::part(ul) {}
+a-markdown::part(li){}
+a-markdown::part(ol-li) {}
+a-markdown::part(ul-li) {}
+
+/* links */
+a-markdown::part(link) {
+	color: var(--link-color);
+}
+
+/* blockquotes */
+a-markdown::part(blockquote) {
+  border-left: 4px solid var(--blockquote-border);
+  padding-left: var(--block-pad);
+  white-space: pre-wrap;
+}
+
+/* code */
+/*
+When you add a suffix to triple backticks (```foo)
+you can then target all "foo" code blocks with ::part(lang-foo).
+This works with any suffix.
+*/
+a-markdown::part(code) {}
+a-markdown::part(pre) {
+	border-radius: .5rem;
+	padding: 0 0 1rem 1rem;
+}
+a-markdown::part(pre code) {}
+a-markdown::part(lang-html) {}
+a-markdown::part(lang-css) {}
+a-markdown::part(lang-javascript) {}
+a-markdown::part(lang-php) {}
+a-markdown::part(lang-python) {}
+
+/* link */
+a-markdown::part(a) {}
+
+/* image */
+a-markdown::part(img) {
+	max-height: 150px;
+}
+
+/* checkboxes */
+a-markdown::part(checkbox) {
+	appearance: none;
+	background: var(--checkbox-background);
+	border-radius: 2px;
+	color: var(--text-color)
+	display: inline-block;
+	height: 2rem;
+	position: relative;
+	width: 2rem;
+	vertical-align: middle;
+}
+
+a-markdown::part(checkbox checked)::after {
+	align-items: center;
+	content: "✓";
+	display: flex;
+	font-size: 2rem;
+	justify-content: center;
+	position: absolute;
+	font-weight: bold;
+	height: 100%;
+	text-shadow: -2px 0px 1px;
+	width: 100%;
+}
+

@@ -1,24 +1,39 @@
 {
   "name": "ATestRunner",
-  "version": "3.0.2",
   "description": "A test runner for ECMAScript and web component modules.",
+  "version": "3.2.0",
+  "license": "GPL-3.0-or-later",
+  "author": "Holmes Bryant <webmaastaa@gmail.com>",
+  "homepage": "https://github.com/HolmesBryant/ATestRunner",
+  "type": "module",
+  "main": "./dist/ATestRunner.min.js",
+  "module": "./dist/ATestRunner.min.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/HolmesBryant/ATestRunner.git"
   },
-  "type": "module",
-  "main": "ATestRunner.js",
-  "scripts": {
-    "dev": "vite",
-    "test": "node --test tests/node.tests.js",
-    "build": "rollup -c"
+  "keywords": [
+    "module",
+    "component"
+  ],
+  "exports": {
+    ".": "./dist/ATestRunner.min.js",
+    "./src/ATestRunner.js": "./src/ATestRunner.js"
   },
-  "author": "Holmes Bryant <https://github.com/HolmesBryant>",
-  "license": "MIT",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "bugs": {
+    "url": "https://github.com/HolmesBryant/ATestRunner/issues"
+  },
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "reload"
+  },
   "devDependencies": {
-    "@rollup/plugin-terser": "^0.4.4",
-    "rollup": "^4.30.1",
-    "vite": "^6.4.1",
-    "vite-plugin-import-css-sheet": "^1.0.10"
+    "@rollup/plugin-node-resolve": "latest",
+    "@rollup/plugin-terser": "latest",
+    "rollup": "latest"
   }
 }

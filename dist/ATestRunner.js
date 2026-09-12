@@ -9,7 +9,7 @@
  * @class ATestRunner
  * The main class for running tests, managing the test queue, and orchestrating reporters.
  */
-export default class ATestRunner {
+class ATestRunner {
   // --- Public Properties ---
 
   /** @type {string|null} The line number of the currently executing test file. */
@@ -984,3 +984,5 @@ class EventReporter extends ATestReporter {
     this.#dispatchEvent(this.#completeEventName, { verdict });
   }
 }
+
+export { ATestRunner as default };
