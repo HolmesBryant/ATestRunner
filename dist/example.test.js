@@ -1,10 +1,11 @@
 /**
  * An example test suite for ATestRunner
+ * @file example.test.js
  * @url https://github.com/HolmesBryant/ATestRunner
  */
 
 // import app from './app.js';
-import ATestRunner from './ATestrunner.min.js';
+import ATestRunner from '../src/ATestrunner.js';
 
 
 /**
@@ -45,13 +46,16 @@ const app = {
 // omit `import.meta.url` to disable line numbers.
 // For very large test suites, disabling line numbers will save time.
 const runner = new ATestRunner(import.meta.url)
+// runner.output = '#results';
 
 const {
 	benchmark,
 	equal,
 	genCombos,
 	group,
+	handleError,
 	info,
+	log,
 	skip,
 	spyOn,
 	test,
@@ -59,6 +63,8 @@ const {
 	wait,
 	when
 } = runner;
+
+info("ATestRunner test suite");
 
 group("Basic Tests", () => {
 	// test(gist, testFn, expectedValue)
@@ -68,7 +74,7 @@ group("Basic Tests", () => {
 	// For simple synchronous cases, you don't have to wrap test expressions in a function
 	test("app.getArg('foo') === foo", app.getArg('foo') === 'foo', true);
 
-	// Even when you don't *have* to wrap test expressions in a function, you *can*
+	// Even when you don't *have* to wrap test expressions in a function, you can.
 	test("app.getArg('foo')", () => app.getArg('foo'), 'foo');
 	test("This should fail", app.foo, 'bar');
 });
@@ -146,7 +152,8 @@ group("Testing equal()", () => {
 	test("handles Sets with objects", equal(app.set1, app.set2), true);
 });
 
-info("Testing wait()")
+info("Testing wait()");
+
 // async wait(milliseconds)
 test(
 	"Testing wait(); waiting a few ticks",
@@ -165,8 +172,18 @@ group("Testing when()", async () => {
 	test("asyncFunc should return 'foo'", when( app.asyncFunc('foo') ), 'foo' )
 
 	// if you need to compare the return value with something else, you *must* use await
-	test("asyncFunc === 'foo'", when( await app.asyncFunc('foo') === 'foo' ), true )
-	test("This test should fail", when( app.asyncFunc('foo') === 'foo' ), true )
+	test(
+		"asyncFunc === 'foo'",
+		when( await app.asyncFunc('foo') === 'foo' ),
+		true
+	);
+
+	test(
+		"This test should fail",
+		when( app.asyncFunc('foo') === 'foo' ),
+		true
+	);
+
 	test(
 	  "when() should time out and return the final falsy value",
 	  when(() => document.getElementById('non-existent-element'), 200, 10),
@@ -181,15 +198,13 @@ group("Testing spyOn()", () => {
 
 	test(
 		"console.debug was called 1 time",
-		() => {
-			return spy.callCount
-		},
+		spy.callCount,
 		1
 	);
 
 	test(
 		"console.debug was called with arg 'foo'",
-		() => spy.calls[0][1],
+		spy.calls[0][1],
 		'foo'
 	);
 
@@ -210,19 +225,65 @@ group("Testing genCombos()", () => {
 	 */
 	const options = { a: [1, 2], b: 'c' };
 
+	log('log test object', options);
+
 	for (const combo of genCombos(options)) {
 		// Dynamically create a test for each combination
 	  test(`Combination with a=${combo.a} should have b='c'`, combo.b, 'c');
 	}
 });
 
-const outputEl = document.createElement('div');
-outputEl.addEventListener(runner.resultEventName, (event) => { event.target.toggleAttribute('flag', true) });
-// Store the original output
-const originalOutput = runner.output;
-document.body.append(outputEl);
+group("Testing code execution before tests", () => {
+	function setupApp(app) {
+		app.foo = 'newvalue';
+		app.baz = 'boom';
+	}
 
-group("Testing DOM Events", () => {
+	function teardownApp(app) {
+		app.foo = 'bar';
+		app.baz = null;
+	}
+
+	setupApp(app);
+
+	log('snapshot', app);
+
+	test("app.foo should be 'newvalue'", () => {
+		return app.foo;
+	}, 'newvalue');
+
+	test("app.baz should be 'boom'", () => {
+		return app.baz;
+	}, 'boom');
+
+	teardownApp(app);
+});
+
+group("Testing code execution after tests", () => {
+	test('app.foo should be "bar"', () => {
+		return app.foo;
+	}, 'bar');
+});
+
+group("Testing group setup involving DOM elements", () => {
+	const elem = document.createElement('div');
+	elem.id="test-elem";
+	document.body.append(elem);
+
+	test("Successfully finds test element", () => {
+		return document.getElementById('test-elem')?.localName;
+	}, 'div');
+
+	elem.remove();
+});
+
+/*group("Testing DOM Events", () => {
+	const outputEl = document.createElement('div');
+	outputEl.addEventListener(runner.resultEventName, (event) => { event.target.toggleAttribute('flag', true) });
+	// Store the original output
+	const originalOutput = runner.output;
+	document.body.append(outputEl);
+
   test("sends correctly formatted result events to an HTMLElement", async () => {
     // Create a separate runner for this test.
     const eventRunner = new ATestRunner();
@@ -248,7 +309,61 @@ group("Testing DOM Events", () => {
 
     return gistIsCorrect && verdictIsCorrect && resultIsCorrect;
   }, true);
+});*/
 
+group("Testing DOM Events", async () => {
+	const eventRunner = new ATestRunner();
+	const outputEl = document.createElement('div');
+	const originalOutput = runner.output;
+	document.body.append(outputEl);
+	eventRunner.output = outputEl;
+
+	const resultPromise = new Promise( resolve => {
+		outputEl.addEventListener(eventRunner.resultEventName, event => {
+			resolve(event);
+		}, { once: true });
+	});
+
+	const progressPromise = new Promise(resolve => {
+		outputEl.addEventListener(eventRunner.progressEventName, event => {
+			if (event.loaded === event.total) resolve(event);
+		});
+	});
+
+	const completePromise = new Promise( resolve => {
+		outputEl.addEventListener(eventRunner.completeEventName, event => {
+			resolve(event);
+		}, { once: true });
+	});
+
+	eventRunner.test('DOM events test', 'expected result', 'expected result');
+	const result = await Promise.all([
+		resultPromise,
+		progressPromise,
+		completePromise,
+		eventRunner.run()
+	]);
+
+	test("Testing result event", () => {
+		const evt = result[0];
+		const gistIsCorrect = evt.detail.gist === 'DOM events test';
+		const verdictIsCorrect = evt.detail.verdict === 'PASS';
+		const resultIsCorrect = evt.detail.result === 'expected result';
+		return gistIsCorrect && verdictIsCorrect && resultIsCorrect;
+	}, true);
+
+	test("Testing progress event", () => {
+		const evt = result[1];
+		return `${evt.total}, ${evt.loaded}`;
+	}, '1, 1');
+
+	test("Testing complete event", () => {
+		const evt = result[2];
+		return evt.detail.verdict;
+	}, 'pass')
+
+	runner.output = originalOutput;
+	outputEl.remove();
 });
 
 runner.run();
