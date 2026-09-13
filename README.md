@@ -677,7 +677,11 @@ The `atestrunner.tests.js` file in the `tests` folder contains a comprehensive t
 ## Change Log
 
 - v3.2
-	- Fixed formatting when running in Node.
+	- fixed formatting when running in Node.
+	- reworked grouping/queue
+	- reworked per-test options (timeout/line/verdict)
+	- improved spyOn
+	- New DOM and Node demos in the `tests/` folder
 
 - v3.1
 	- Changed Dev Dependencies
